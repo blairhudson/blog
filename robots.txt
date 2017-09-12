@@ -1,0 +1,4 @@
+Sitemap: http://blairhudson.github.io/blog/sitemapindex.xml
+
+User-Agent: *
+Host: blairhudson.github.io
