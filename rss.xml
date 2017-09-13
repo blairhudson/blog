@@ -1,5 +1,1074 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link type="application/rss+xml" href="http://blairhudson.github.io/blog/rss.xml" rel="self"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Tue, 12 Sep 2017 11:32:21 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Using Jupyter notebooks with Anaconda</title><link>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link rel="self" type="application/rss+xml" href="http://blairhudson.github.io/blog/rss.xml"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Wed, 13 Sep 2017 11:13:08 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Optimising hyper-parameters efficiently with Scikit-Optimize</title><link>http://blairhudson.github.io/blog/posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+    &lt;div class="container" id="notebook-container"&gt;
+
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;One of the most well-known techniques for experimenting with various model configurations is &lt;em&gt;Grid Search&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;With grid search, you specify a discrete search space (a parameter grid) of all of the parameter values you would like to test. The search permutes through the grid, testing various combinations until all are exhausted. Basic a specified performance metric (e.g. error), you can select the best parameter combination for your model.&lt;/p&gt;
+&lt;p&gt;What's wrong with this?&lt;/p&gt;
+&lt;p&gt;If you have a large parameter grid, this doesn't work too well:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [1]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;numpy&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="nn"&gt;np&lt;/span&gt;
+
+&lt;span class="n"&gt;param_grid&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="s1"&gt;'param_a'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mf"&gt;0.01&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;0.03&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;0.1&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+    &lt;span class="s1"&gt;'param_b'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+    &lt;span class="s1"&gt;'param_c'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;50&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;100&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;num_searches&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;param_grid&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;np&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;prod&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="nb"&gt;len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;p&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;p&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;param_grid&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;values&lt;/span&gt;&lt;span class="p"&gt;()])&lt;/span&gt;
+    
+&lt;span class="n"&gt;num_searches&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;param_grid&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt output_prompt"&gt;Out[1]:&lt;/div&gt;
+
+
+
+&lt;div class="output_text output_subarea output_execute_result"&gt;
+&lt;pre&gt;27&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;And maybe we want to search over four possible values instead for &lt;code&gt;param_a&lt;/code&gt;, and add two more new parameters:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [2]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;param_grid&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="s1"&gt;'param_a'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mf"&gt;0.01&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;0.03&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;0.1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;0.3&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+    &lt;span class="s1"&gt;'param_b'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+    &lt;span class="s1"&gt;'param_c'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;50&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;100&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+    &lt;span class="s1"&gt;'param_d'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s2"&gt;"a"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;"b"&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+    &lt;span class="s1"&gt;'param_e'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="n"&gt;num_searches&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;param_grid&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt output_prompt"&gt;Out[2]:&lt;/div&gt;
+
+
+
+&lt;div class="output_text output_subarea output_execute_result"&gt;
+&lt;pre&gt;216&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;As you can see from the first grid, there's already 27 combinations to try. Then this jumps to 216 for our larger grid. Depending on the complexity of the model and the amount of data to process, this can very easily become infeasible.&lt;/p&gt;
+&lt;p&gt;There are a few approaches to solving this, including:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;breaking down the search into multiple smaller steps (such as searching &lt;code&gt;param_a&lt;/code&gt; and &lt;code&gt;param_b&lt;/code&gt; first, with defaults for the others, then using the best values to search the remaining parameters - this can be tricky in practice)&lt;/li&gt;
+&lt;li&gt;searching the parameter space &lt;a href="http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.RandomizedSearchCV.html"&gt;at random&lt;/a&gt; (which has an additional benefit of discovering better parameter values when random samples are drawn frmo a continuous range)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;While Scikit-Learn doesn't provide many more options, some &lt;a href="https://github.com/scikit-optimize/scikit-optimize/blob/master/AUTHORS.md"&gt;clever people&lt;/a&gt; have developed a drop-in replacement for Scikit-Learn's &lt;code&gt;GridSearchCV&lt;/code&gt; and &lt;code&gt;RandomizedSearchCV&lt;/code&gt; called &lt;code&gt;BayesSearchCV&lt;/code&gt; in a package called &lt;em&gt;Scikit-Optimize&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;Let's install Scikit-Optimize and implement &lt;code&gt;BayesSearchCV&lt;/code&gt; with a simple example!&lt;/p&gt;
+&lt;h3 id="Installing-Scikit-Optimize"&gt;Installing Scikit-Optimize&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/#Installing-Scikit-Optimize"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;Assuming you already have already &lt;a href="http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/"&gt;installed Anaconda and Jupyter&lt;/a&gt;, you will need to do the following:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;pip install scikit-optimize&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;If you have trouble installing, you may first need to run the following to install one of Scikit-Optmize's dependencies:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;pip install scikit-garden&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="Implementing-BayesSearchCV"&gt;Implementing &lt;code&gt;BayesSearchCV&lt;/code&gt;&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/#Implementing-BayesSearchCV"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;Here's an example implementation using a sample dataset and &lt;a href="http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html"&gt;Logistic Regression&lt;/a&gt;.&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [3]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;skopt&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;BayesSearchCV&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.datasets&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.model_selection&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.linear_model&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;
+
+&lt;span class="c1"&gt;# prep some sample data&lt;/span&gt;
+&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;return_X_y&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;train_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.75&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# we're using a logistic regression model&lt;/span&gt;
+&lt;span class="n"&gt;clf&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;verbose&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# this is our parameter grid&lt;/span&gt;
+&lt;span class="n"&gt;param_grid&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="s1"&gt;'solver'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'liblinear'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'saga'&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;  
+    &lt;span class="s1"&gt;'penalty'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'l1'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="s1"&gt;'l2'&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt;
+    &lt;span class="s1"&gt;'tol'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1e-5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1e-3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'log-uniform'&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+    &lt;span class="s1"&gt;'C'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1e-5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;100&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'log-uniform'&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+    &lt;span class="s1"&gt;'fit_intercept'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="c1"&gt;# set up our optimiser to find the best params in 30 searches&lt;/span&gt;
+&lt;span class="n"&gt;opt&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;BayesSearchCV&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+    &lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;param_grid&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;n_iter&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;30&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;verbose&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;
+&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;opt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/model_selection/_split.py:2010: FutureWarning: From version 0.21, test_size will always complement train_size unless both are specified.
+  FutureWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.1s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.2s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=0.000382254605256, C=0.000825787721576, solver=saga, penalty=l2 
+[CV]  fit_intercept=True, tol=0.000382254605256, C=0.000825787721576, solver=saga, penalty=l2, total=   0.1s
+[CV] fit_intercept=True, tol=0.000382254605256, C=0.000825787721576, solver=saga, penalty=l2 
+[CV]  fit_intercept=True, tol=0.000382254605256, C=0.000825787721576, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=0.000382254605256, C=0.000825787721576, solver=saga, penalty=l2 
+[CV]  fit_intercept=True, tol=0.000382254605256, C=0.000825787721576, solver=saga, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=0.000555351500381, C=0.243756153601, solver=saga, penalty=l2 
+[CV]  fit_intercept=True, tol=0.000555351500381, C=0.243756153601, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=0.000555351500381, C=0.243756153601, solver=saga, penalty=l2 
+[CV]  fit_intercept=True, tol=0.000555351500381, C=0.243756153601, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=0.000555351500381, C=0.243756153601, solver=saga, penalty=l2 
+[CV]  fit_intercept=True, tol=0.000555351500381, C=0.243756153601, solver=saga, penalty=l2, total=   0.0s
+Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=0.00021856668705, C=0.000379398151643, solver=liblinear, penalty=l1 
+[CV]  fit_intercept=True, tol=0.00021856668705, C=0.000379398151643, solver=liblinear, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=0.00021856668705, C=0.000379398151643, solver=liblinear, penalty=l1 
+[CV]  fit_intercept=True, tol=0.00021856668705, C=0.000379398151643, solver=liblinear, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=0.00021856668705, C=0.000379398151643, solver=liblinear, penalty=l1 
+[CV]  fit_intercept=True, tol=0.00021856668705, C=0.000379398151643, solver=liblinear, penalty=l1, total=   0.0s
+Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=0.000102890478113, C=0.00840588302113, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=0.000102890478113, C=0.00840588302113, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=0.000102890478113, C=0.00840588302113, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=0.000102890478113, C=0.00840588302113, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=0.000102890478113, C=0.00840588302113, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=0.000102890478113, C=0.00840588302113, solver=liblinear, penalty=l2, total=   0.0s
+Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=0.000920403419315, C=0.00194382983221, solver=saga, penalty=l1 
+[CV]  fit_intercept=True, tol=0.000920403419315, C=0.00194382983221, solver=saga, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=0.000920403419315, C=0.00194382983221, solver=saga, penalty=l1 
+[CV]  fit_intercept=True, tol=0.000920403419315, C=0.00194382983221, solver=saga, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=0.000920403419315, C=0.00194382983221, solver=saga, penalty=l1 
+[CV]  fit_intercept=True, tol=0.000920403419315, C=0.00194382983221, solver=saga, penalty=l1, total=   0.0s
+Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=3.94082520634e-05, C=0.000130052012491, solver=liblinear, penalty=l1 
+[CV]  fit_intercept=True, tol=3.94082520634e-05, C=0.000130052012491, solver=liblinear, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=3.94082520634e-05, C=0.000130052012491, solver=liblinear, penalty=l1 
+[CV]  fit_intercept=True, tol=3.94082520634e-05, C=0.000130052012491, solver=liblinear, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=3.94082520634e-05, C=0.000130052012491, solver=liblinear, penalty=l1 
+[CV]  fit_intercept=True, tol=3.94082520634e-05, C=0.000130052012491, solver=liblinear, penalty=l1, total=   0.0s
+Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=0.000349866443736, C=0.704155417474, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000349866443736, C=0.704155417474, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.000349866443736, C=0.704155417474, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000349866443736, C=0.704155417474, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.000349866443736, C=0.704155417474, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000349866443736, C=0.704155417474, solver=saga, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=0.000550604891749, C=1.95909841601, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000550604891749, C=1.95909841601, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.000550604891749, C=1.95909841601, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000550604891749, C=1.95909841601, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.000550604891749, C=1.95909841601, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000550604891749, C=1.95909841601, solver=liblinear, penalty=l2, total=   0.0s
+Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=2.57731741777e-05, C=0.0933134709093, solver=saga, penalty=l1 
+[CV]  fit_intercept=True, tol=2.57731741777e-05, C=0.0933134709093, solver=saga, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=2.57731741777e-05, C=0.0933134709093, solver=saga, penalty=l1 
+[CV]  fit_intercept=True, tol=2.57731741777e-05, C=0.0933134709093, solver=saga, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=2.57731741777e-05, C=0.0933134709093, solver=saga, penalty=l1 
+[CV]  fit_intercept=True, tol=2.57731741777e-05, C=0.0933134709093, solver=saga, penalty=l1, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=5.06278923847e-05, C=5.86409384188, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=5.06278923847e-05, C=5.86409384188, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=5.06278923847e-05, C=5.86409384188, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=5.06278923847e-05, C=5.86409384188, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=5.06278923847e-05, C=5.86409384188, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=5.06278923847e-05, C=5.86409384188, solver=saga, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=0.001, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.001, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.001, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.001, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.001, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.001, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=0.001, C=0.00171621716873, solver=liblinear, penalty=l1 
+[CV]  fit_intercept=True, tol=0.001, C=0.00171621716873, solver=liblinear, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=0.001, C=0.00171621716873, solver=liblinear, penalty=l1 
+[CV]  fit_intercept=True, tol=0.001, C=0.00171621716873, solver=liblinear, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=0.001, C=0.00171621716873, solver=liblinear, penalty=l1 
+[CV]  fit_intercept=True, tol=0.001, C=0.00171621716873, solver=liblinear, penalty=l1, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=0.000742149491069, C=4.65040156797, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000742149491069, C=4.65040156797, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.000742149491069, C=4.65040156797, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000742149491069, C=4.65040156797, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.000742149491069, C=4.65040156797, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000742149491069, C=4.65040156797, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=0.000289050608323, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000289050608323, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.000289050608323, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000289050608323, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.000289050608323, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.000289050608323, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=1e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=1e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=1e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=1e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=1e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=1e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=0.000157629057632, C=100.0, solver=saga, penalty=l1 
+[CV]  fit_intercept=False, tol=0.000157629057632, C=100.0, solver=saga, penalty=l1, total=   0.0s
+[CV] fit_intercept=False, tol=0.000157629057632, C=100.0, solver=saga, penalty=l1 
+[CV]  fit_intercept=False, tol=0.000157629057632, C=100.0, solver=saga, penalty=l1, total=   0.0s
+[CV] fit_intercept=False, tol=0.000157629057632, C=100.0, solver=saga, penalty=l1 
+[CV]  fit_intercept=False, tol=0.000157629057632, C=100.0, solver=saga, penalty=l1, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=1e-05, C=1e-05, solver=saga, penalty=l2 .
+[CV]  fit_intercept=True, tol=1e-05, C=1e-05, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1e-05, C=1e-05, solver=saga, penalty=l2 .
+[CV]  fit_intercept=True, tol=1e-05, C=1e-05, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1e-05, C=1e-05, solver=saga, penalty=l2 .
+[CV]  fit_intercept=True, tol=1e-05, C=1e-05, solver=saga, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=1e-05, C=100.0, solver=saga, penalty=l1 
+[CV]  fit_intercept=False, tol=1e-05, C=100.0, solver=saga, penalty=l1, total=   0.0s
+[CV] fit_intercept=False, tol=1e-05, C=100.0, solver=saga, penalty=l1 
+[CV]  fit_intercept=False, tol=1e-05, C=100.0, solver=saga, penalty=l1, total=   0.0s
+[CV] fit_intercept=False, tol=1e-05, C=100.0, solver=saga, penalty=l1 
+[CV]  fit_intercept=False, tol=1e-05, C=100.0, solver=saga, penalty=l1, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=9.55256066036e-05, C=0.0267622531962, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=9.55256066036e-05, C=0.0267622531962, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=9.55256066036e-05, C=0.0267622531962, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=9.55256066036e-05, C=0.0267622531962, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=9.55256066036e-05, C=0.0267622531962, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=9.55256066036e-05, C=0.0267622531962, solver=saga, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=2.14150718478e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=2.14150718478e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=2.14150718478e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=2.14150718478e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=2.14150718478e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=2.14150718478e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=1e-05, C=38.4658080596, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=38.4658080596, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1e-05, C=38.4658080596, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=38.4658080596, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1e-05, C=38.4658080596, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=38.4658080596, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=0.001, C=3.18302458993, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.001, C=3.18302458993, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.001, C=3.18302458993, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.001, C=3.18302458993, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.001, C=3.18302458993, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=0.001, C=3.18302458993, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=1e-05, C=61.9366266622, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=1e-05, C=61.9366266622, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=1e-05, C=61.9366266622, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=1e-05, C=61.9366266622, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=1e-05, C=61.9366266622, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=False, tol=1e-05, C=61.9366266622, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=1.52191042725e-05, C=1e-05, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1.52191042725e-05, C=1e-05, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1.52191042725e-05, C=1e-05, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1.52191042725e-05, C=1e-05, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1.52191042725e-05, C=1e-05, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1.52191042725e-05, C=1e-05, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=5.84228443388e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=5.84228443388e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=5.84228443388e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=5.84228443388e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=5.84228443388e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=5.84228443388e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=False, tol=0.00054754356556, C=0.00366650548222, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=0.00054754356556, C=0.00366650548222, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.00054754356556, C=0.00366650548222, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=0.00054754356556, C=0.00366650548222, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=False, tol=0.00054754356556, C=0.00366650548222, solver=saga, penalty=l2 
+[CV]  fit_intercept=False, tol=0.00054754356556, C=0.00366650548222, solver=saga, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=5.54807277677e-05, C=0.825090969286, solver=saga, penalty=l1 
+[CV]  fit_intercept=True, tol=5.54807277677e-05, C=0.825090969286, solver=saga, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=5.54807277677e-05, C=0.825090969286, solver=saga, penalty=l1 
+[CV]  fit_intercept=True, tol=5.54807277677e-05, C=0.825090969286, solver=saga, penalty=l1, total=   0.0s
+[CV] fit_intercept=True, tol=5.54807277677e-05, C=0.825090969286, solver=saga, penalty=l1 
+[CV]  fit_intercept=True, tol=5.54807277677e-05, C=0.825090969286, solver=saga, penalty=l1, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/skopt/optimizer/optimizer.py:366: UserWarning: The objective has been evaluated at this point before.
+  warnings.warn("The objective has been evaluated "
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=100.0, solver=liblinear, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Fitting 3 folds for each of 1 candidates, totalling 3 fits
+[CV] fit_intercept=True, tol=1e-05, C=63.2457136517, solver=saga, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=63.2457136517, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1e-05, C=63.2457136517, solver=saga, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=63.2457136517, solver=saga, penalty=l2, total=   0.0s
+[CV] fit_intercept=True, tol=1e-05, C=63.2457136517, solver=saga, penalty=l2 
+[CV]  fit_intercept=True, tol=1e-05, C=63.2457136517, solver=saga, penalty=l2, total=   0.0s
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stderr output_text"&gt;
+&lt;pre&gt;/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+/Users/blairhudson/anaconda/lib/python3.5/site-packages/sklearn/linear_model/sag.py:326: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+  "the coef_ did not converge", ConvergenceWarning)
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s finished
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [4]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'Best params achieve a test score of'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;opt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;score&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="s1"&gt;':'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;opt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;best_params_&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Best params achieve a test score of 0.951048951049 :
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt output_prompt"&gt;Out[4]:&lt;/div&gt;
+
+
+
+&lt;div class="output_text output_subarea output_execute_result"&gt;
+&lt;pre&gt;{'C': 100.0,
+ 'fit_intercept': True,
+ 'penalty': 'l2',
+ 'solver': 'liblinear',
+ 'tol': 1.0000000000000001e-05}&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;By increasing the value of &lt;code&gt;n_iter&lt;/code&gt;, you can continue the search to find better parameter combinations. You can also use the optimiser for prediction, by calling &lt;code&gt;.predict()&lt;/code&gt; or &lt;code&gt;.predict_proba()&lt;/code&gt; for probabilities, or extract and use the best one standalone:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [5]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;opt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;best_estimator_&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt output_prompt"&gt;Out[5]:&lt;/div&gt;
+
+
+
+&lt;div class="output_text output_subarea output_execute_result"&gt;
+&lt;pre&gt;LogisticRegression(C=100.0, class_weight=None, dual=False, fit_intercept=True,
+          intercept_scaling=1, max_iter=100, multi_class='ovr', n_jobs=1,
+          penalty='l2', random_state=1234, solver='liblinear',
+          tol=1.0000000000000001e-05, verbose=0, warm_start=False)&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;You may also find it useful to re-use the best parameters programatically to define an equivalent model:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [6]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;LogisticRegression&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;opt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;best_params_&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt output_prompt"&gt;Out[6]:&lt;/div&gt;
+
+
+
+&lt;div class="output_text output_subarea output_execute_result"&gt;
+&lt;pre&gt;LogisticRegression(C=100.0, class_weight=None, dual=False, fit_intercept=True,
+          intercept_scaling=1, max_iter=100, multi_class='ovr', n_jobs=1,
+          penalty='l2', random_state=None, solver='liblinear',
+          tol=1.0000000000000001e-05, verbose=0, warm_start=False)&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/</guid><pubDate>Wed, 13 Sep 2017 11:12:52 GMT</pubDate></item><item><title>Using Jupyter notebooks with Anaconda</title><link>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
     &lt;div class="container" id="notebook-container"&gt;
 
 &lt;div class="cell border-box-sizing text_cell rendered"&gt;
