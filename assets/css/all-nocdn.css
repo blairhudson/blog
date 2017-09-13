@@ -8558,3 +8558,5 @@ ul.pager li a {
 div.prompt { background: none !important; }
 
 footer { padding-bottom: 19px; }
+
+.pager { padding-top: 19px; padding-bottom: 19px; }
