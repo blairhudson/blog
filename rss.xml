@@ -1,5 +1,172 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link rel="self" href="http://blairhudson.github.io/blog/rss.xml" type="application/rss+xml"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Wed, 13 Sep 2017 11:23:40 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Optimising hyper-parameters efficiently with Scikit-Optimize</title><link>http://blairhudson.github.io/blog/posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link type="application/rss+xml" href="http://blairhudson.github.io/blog/rss.xml" rel="self"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Wed, 13 Sep 2017 11:29:44 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Creating a blog with Jupyter notebooks</title><link>http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+    &lt;div class="container" id="notebook-container"&gt;
+
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Assuming you already have already &lt;a href="http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/"&gt;installed Jupyter notebook&lt;/a&gt;, you will need to do the following:&lt;/p&gt;
+&lt;h3 id="Installing-and-configuring-a-Nikola-blog"&gt;Installing and configuring a Nikola blog&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/#Installing-and-configuring-a-Nikola-blog"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;ol&gt;
+&lt;li&gt;&lt;p&gt;First you'll need to create a directory structure as follows:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; - /blog
+ -- /posts
+ -- /output&lt;/code&gt;&lt;/pre&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;/blog&lt;/code&gt; is the root directory for everything you'll be doing with your blog&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/posts&lt;/code&gt; is where you'll store your Jupyter notebooks&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;/output&lt;/code&gt; will contain the code generated for your blog&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Run the following command to install Nikola (the static website generator which will do most of the heavy lifting)&lt;sup&gt;[1]&lt;/sup&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;pip install --upgrade "Nikola[extras]"&lt;/code&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Change directory to your blog root:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;cd blog&lt;/code&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Start up Nikola, following the prompts to configure your new blog:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;nikola init .&lt;/code&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Open &lt;code&gt;/blog/conf.py&lt;/code&gt; and change the &lt;code&gt;POSTS&lt;/code&gt; and &lt;code&gt;PAGES&lt;/code&gt; sections to include the lines as follows. This will allow Nikola to treat &lt;code&gt;.ipynb&lt;/code&gt; files as blog posts.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; POSTS = (
+     ("posts/*.rst", "posts", "post.tmpl"),
+     ("posts/*.md", "posts", "post.tmpl"),
+     ("posts/*.txt", "posts", "post.tmpl"),
+     ("posts/*.html", "posts", "post.tmpl"),
+     ("posts/*.ipynb", "posts", "post.tmpl"),
+ )
+ PAGES = (
+     ("pages/*.rst", "pages", "page.tmpl"),
+     ("pages/*.md", "pages", "page.tmpl"),
+     ("pages/*.txt", "pages", "page.tmpl"),
+     ("pages/*.html", "pages", "page.tmpl"),
+     ("pages/*.ipynb", "pages", "page.tmpl"),
+ )&lt;/code&gt;&lt;/pre&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Write your blog post in Jupyter, saving the &lt;code&gt;.ipynb&lt;/code&gt; file to &lt;code&gt;/posts&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;You will need to explicitly add the following metadata to your notebook (in the Jupyter menu, select &lt;em&gt;Edit &amp;gt; Edit Notebook Metadata&lt;/em&gt;). Change the metadata to match your post.&lt;sup&gt;[2]&lt;/sup&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt; "nikola": {
+     "title": "Creating a blog with Jupyter notebooks",
+     "slug": "creating-a-blog-with-jupyter-notebooks",
+     "date": "2017-09-09 21:09:01 UTC+10:00"
+ }&lt;/code&gt;&lt;/pre&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Run &lt;code&gt;nikola build&lt;/code&gt; each time you update your &lt;code&gt;/posts&lt;/code&gt;, which will generate your site and store it in &lt;code&gt;/output&lt;/code&gt;!&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;If you're going to be publishing your blog on Github (like me), you can push the content of &lt;code&gt;/output&lt;/code&gt; to your website repo (&lt;a href="https://github.com/blairhudson/blog"&gt;example&lt;/a&gt;).&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h4 id="[1]Problems-installing-Nikola?"&gt;&lt;sup&gt;[1]&lt;/sup&gt;Problems installing Nikola?&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/#%5B1%5DProblems-installing-Nikola?"&gt;¶&lt;/a&gt;&lt;/h4&gt;&lt;p&gt;I ran into some issues installing Nikola on OS X with Anaconda. Specifically, &lt;code&gt;gcc&lt;/code&gt; in Anaconda was the culprit. Resolution:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;conda remove gcc&lt;/code&gt; to uninstall &lt;code&gt;gcc&lt;/code&gt; provided by Anaconda&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;This will default to the system &lt;code&gt;gcc&lt;/code&gt;, which you can check by running &lt;code&gt;which gcc&lt;/code&gt; (which should output &lt;code&gt;/usr/bin/gcc&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;If this still doesn't resolve the issue still, you may need to install a more up-to-date &lt;code&gt;gcc&lt;/code&gt;:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Install &lt;a href="https://brew.sh"&gt;Homebrew&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;brew install gcc&lt;/code&gt; (you may be prompted to install Developer Tools)&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;brew unlink gcc&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;brew link --overwrite gcc&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;code&gt;which gcc&lt;/code&gt; should now show &lt;code&gt;/usr/local/Cellar/gcc/7.2.0&lt;/code&gt;. 👍&lt;/p&gt;
+&lt;h4 id="[2]Inferring-Nikola-post-metadata"&gt;&lt;sup&gt;[2]&lt;/sup&gt;Inferring Nikola post metadata&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/#%5B2%5DInferring-Nikola-post-metadata"&gt;¶&lt;/a&gt;&lt;/h4&gt;&lt;p&gt;Like me, you probably want as little as possible to come between your latest notebook hack and your awesome new blog.&lt;/p&gt;
+&lt;p&gt;Nikola parses Jupyter notebooks with a plugin, which with some modification we can have infer all of the Nikola post metadata automatically. For me, the plugin file was here (though it may differ for you):&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;~/anaconda/lib/python3.5/site-packages/nikola/plugins/compile/ipynb.py&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;To automagically infer the required metadata, you can replace the &lt;code&gt;read_metadata()&lt;/code&gt; function in the file above with the following code:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [5]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;read_metadata&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;post&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;file_metadata_regexp&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;unslugify_titles&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;lang&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="sd"&gt;"""Read metadata directly from ipynb file.&lt;/span&gt;
+
+&lt;span class="sd"&gt;    As ipynb file support arbitrary metadata as json, the metadata used by Nikola&lt;/span&gt;
+&lt;span class="sd"&gt;    will be assume to be in the 'nikola' subfield.&lt;/span&gt;
+&lt;span class="sd"&gt;    """&lt;/span&gt;
+    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;_req_missing_ipynb&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;lang&lt;/span&gt; &lt;span class="ow"&gt;is&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;lang&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;LocaleBorg&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;current_lang&lt;/span&gt;
+    &lt;span class="n"&gt;source&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;post&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;translated_source_path&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;lang&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="n"&gt;io&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;source&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;"r"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;encoding&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;"utf8"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;in_file&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;nb_json&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nbformat&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;read&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;in_file&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;current_nbformat&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="c1"&gt;# Metadata might not exist in two-file posts or in hand-crafted&lt;/span&gt;
+    &lt;span class="c1"&gt;# .ipynb files.&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# infer metadata&lt;/span&gt;
+    &lt;span class="n"&gt;title&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;splitext&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;basename&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;source&lt;/span&gt;&lt;span class="p"&gt;))[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+    &lt;span class="n"&gt;slug&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;title&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;lower&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;replace&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;' '&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'-'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;datetime&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;datetime&lt;/span&gt;
+    &lt;span class="n"&gt;date&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;datetime&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fromtimestamp&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;getctime&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;source&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;strftime&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'%Y-%m-&lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s1"&gt; %k:%M:%S'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;implicit&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="s1"&gt;'title'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="n"&gt;title&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'slug'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;slug&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'date'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="n"&gt;date&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="n"&gt;explicit&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nb_json&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'metadata'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;{})&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'nikola'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;{})&lt;/span&gt;
+    
+    &lt;span class="c1"&gt;# replace inference with explicit if available&lt;/span&gt;
+    &lt;span class="n"&gt;metadata&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;implicit&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;explicit&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;metadata&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;With this small modification, we instruct Nikola to infer the &lt;code&gt;title&lt;/code&gt; and &lt;code&gt;slug&lt;/code&gt; values based on the filename, and the &lt;code&gt;date&lt;/code&gt; value based on the filesystem. Magical! ✨&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Update:&lt;/strong&gt; The makers of Nikola have suggested some official methods for achieving this that are built right into the existing workflow:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [9]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="o"&gt;%%&lt;/span&gt;&lt;span class="k"&gt;html&lt;/span&gt;
+&amp;lt;blockquote class="twitter-tweet" data-conversation="none" data-lang="en"&amp;gt;&amp;lt;p lang="en" dir="ltr"&amp;gt;Titles and slugs can be done via FILE_METADATA_REGEXP, and auto dates are prone to issues.&amp;lt;br&amp;gt;Better: import files with `nikola new_post -i`&amp;lt;/p&amp;gt;&amp;amp;mdash; Nikola Generator (@GetNikola) &amp;lt;a href="https://twitter.com/GetNikola/status/907570254611484672"&amp;gt;September 12, 2017&amp;lt;/a&amp;gt;&amp;lt;/blockquote&amp;gt; &amp;lt;script async src="//platform.twitter.com/widgets.js" charset="utf-8"&amp;gt;&amp;lt;/script&amp;gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+
+&lt;div class="output_html rendered_html output_subarea "&gt;
+&lt;blockquote class="twitter-tweet" data-conversation="none" data-lang="en"&gt;&lt;p lang="en" dir="ltr"&gt;Titles and slugs can be done via FILE_METADATA_REGEXP, and auto dates are prone to issues.&lt;br&gt;Better: import files with `nikola new_post -i`&lt;/p&gt;— Nikola Generator (@GetNikola) &lt;a href="https://twitter.com/GetNikola/status/907570254611484672"&gt;September 12, 2017&lt;/a&gt;&lt;/blockquote&gt; &lt;script async src="//platform.twitter.com/widgets.js" charset="utf-8"&gt;&lt;/script&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/</guid><pubDate>Wed, 13 Sep 2017 11:29:29 GMT</pubDate></item><item><title>Optimising hyper-parameters efficiently with Scikit-Optimize</title><link>http://blairhudson.github.io/blog/posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
     &lt;div class="container" id="notebook-container"&gt;
 
 &lt;div class="cell border-box-sizing text_cell rendered"&gt;
@@ -341,139 +508,4 @@
 &lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
-</description><guid>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</guid><pubDate>Tue, 12 Sep 2017 11:20:54 GMT</pubDate></item><item><title>Creating a blog with Jupyter notebooks</title><link>http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
-    &lt;div class="container" id="notebook-container"&gt;
-
-&lt;div class="cell border-box-sizing text_cell rendered"&gt;
-&lt;div class="prompt input_prompt"&gt;
-&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;Assuming you already have already &lt;a href="http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/"&gt;installed Jupyter notebook&lt;/a&gt;, you will need to do the following:&lt;/p&gt;
-&lt;h3 id="Installing-and-configuring-a-Nikola-blog"&gt;Installing and configuring a Nikola blog&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/#Installing-and-configuring-a-Nikola-blog"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;ol&gt;
-&lt;li&gt;&lt;p&gt;First you'll need to create a directory structure as follows:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt; - /blog
- -- /posts
- -- /output&lt;/code&gt;&lt;/pre&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;/blog&lt;/code&gt; is the root directory for everything you'll be doing with your blog&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;/posts&lt;/code&gt; is where you'll store your Jupyter notebooks&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;/output&lt;/code&gt; will contain the code generated for your blog&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;p&gt;Run the following command to install Nikola (the static website generator which will do most of the heavy lifting)&lt;sup&gt;[1]&lt;/sup&gt;:&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;pip install --upgrade "Nikola[extras]"&lt;/code&gt;&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;p&gt;Change directory to your blog root:&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;cd blog&lt;/code&gt;&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;p&gt;Start up Nikola, following the prompts to configure your new blog:&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;nikola init .&lt;/code&gt;&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;p&gt;Open &lt;code&gt;/blog/conf.py&lt;/code&gt; and change the &lt;code&gt;POSTS&lt;/code&gt; and &lt;code&gt;PAGES&lt;/code&gt; sections to include the lines as follows. This will allow Nikola to treat &lt;code&gt;.ipynb&lt;/code&gt; files as blog posts.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt; POSTS = (
-     ("posts/*.rst", "posts", "post.tmpl"),
-     ("posts/*.md", "posts", "post.tmpl"),
-     ("posts/*.txt", "posts", "post.tmpl"),
-     ("posts/*.html", "posts", "post.tmpl"),
-     ("posts/*.ipynb", "posts", "post.tmpl"),
- )
- PAGES = (
-     ("pages/*.rst", "pages", "page.tmpl"),
-     ("pages/*.md", "pages", "page.tmpl"),
-     ("pages/*.txt", "pages", "page.tmpl"),
-     ("pages/*.html", "pages", "page.tmpl"),
-     ("pages/*.ipynb", "pages", "page.tmpl"),
- )&lt;/code&gt;&lt;/pre&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;p&gt;Write your blog post in Jupyter, saving the &lt;code&gt;.ipynb&lt;/code&gt; file to &lt;code&gt;/posts&lt;/code&gt;.&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;p&gt;You will need to explicitly add the following metadata to your notebook (in the Jupyter menu, select &lt;em&gt;Edit &amp;gt; Edit Notebook Metadata&lt;/em&gt;). Change the metadata to match your post.&lt;sup&gt;[2]&lt;/sup&gt;&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt; "nikola": {
-     "title": "Creating a blog with Jupyter notebooks",
-     "slug": "creating-a-blog-with-jupyter-notebooks",
-     "date": "2017-09-09 21:09:01 UTC+10:00"
- }&lt;/code&gt;&lt;/pre&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;p&gt;Run &lt;code&gt;nikola build&lt;/code&gt; each time you update your &lt;code&gt;/posts&lt;/code&gt;, which will generate your site and store it in &lt;code&gt;/output&lt;/code&gt;!&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;&lt;p&gt;If you're going to be publishing your blog on Github (like me), you can push the content of &lt;code&gt;/output&lt;/code&gt; to your website repo (&lt;a href="https://github.com/blairhudson/blog"&gt;example&lt;/a&gt;).&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h4 id="[1]Problems-installing-Nikola?"&gt;&lt;sup&gt;[1]&lt;/sup&gt;Problems installing Nikola?&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/#%5B1%5DProblems-installing-Nikola?"&gt;¶&lt;/a&gt;&lt;/h4&gt;&lt;p&gt;I ran into some issues installing Nikola on OS X with Anaconda. Specifically, &lt;code&gt;gcc&lt;/code&gt; in Anaconda was the culprit. Resolution:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;conda remove gcc&lt;/code&gt; to uninstall &lt;code&gt;gcc&lt;/code&gt; provided by Anaconda&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;This will default to the system &lt;code&gt;gcc&lt;/code&gt;, which you can check by running &lt;code&gt;which gcc&lt;/code&gt; (which should output &lt;code&gt;/usr/bin/gcc&lt;/code&gt;).&lt;/p&gt;
-&lt;p&gt;If this still doesn't resolve the issue still, you may need to install a more up-to-date &lt;code&gt;gcc&lt;/code&gt;:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;Install &lt;a href="https://brew.sh"&gt;Homebrew&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;brew install gcc&lt;/code&gt; (you may be prompted to install Developer Tools)&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;brew unlink gcc&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;brew link --overwrite gcc&lt;/code&gt;&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;&lt;code&gt;which gcc&lt;/code&gt; should now show &lt;code&gt;/usr/local/Cellar/gcc/7.2.0&lt;/code&gt;. 👍&lt;/p&gt;
-&lt;h4 id="[2]Inferring-Nikola-post-metadata"&gt;&lt;sup&gt;[2]&lt;/sup&gt;Inferring Nikola post metadata&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/#%5B2%5DInferring-Nikola-post-metadata"&gt;¶&lt;/a&gt;&lt;/h4&gt;&lt;p&gt;Like me, you probably want as little as possible to come between your latest notebook hack and your awesome new blog.&lt;/p&gt;
-&lt;p&gt;Nikola parses Jupyter notebooks with a plugin, which with some modification we can have infer all of the Nikola post metadata automatically. For me, the plugin file was here (though it may differ for you):&lt;/p&gt;
-&lt;p&gt;&lt;code&gt;~/anaconda/lib/python3.5/site-packages/nikola/plugins/compile/ipynb.py&lt;/code&gt;&lt;/p&gt;
-&lt;p&gt;To automagically infer the required metadata, you can replace the &lt;code&gt;read_metadata()&lt;/code&gt; function in the file above with the following code:&lt;/p&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing code_cell rendered"&gt;
-&lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [5]:&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-    &lt;div class="input_area"&gt;
-&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;read_metadata&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;post&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;file_metadata_regexp&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;unslugify_titles&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;lang&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-    &lt;span class="sd"&gt;"""Read metadata directly from ipynb file.&lt;/span&gt;
-
-&lt;span class="sd"&gt;    As ipynb file support arbitrary metadata as json, the metadata used by Nikola&lt;/span&gt;
-&lt;span class="sd"&gt;    will be assume to be in the 'nikola' subfield.&lt;/span&gt;
-&lt;span class="sd"&gt;    """&lt;/span&gt;
-    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;_req_missing_ipynb&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
-    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;lang&lt;/span&gt; &lt;span class="ow"&gt;is&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
-        &lt;span class="n"&gt;lang&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;LocaleBorg&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;current_lang&lt;/span&gt;
-    &lt;span class="n"&gt;source&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;post&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;translated_source_path&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;lang&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="n"&gt;io&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;source&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;"r"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;encoding&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;"utf8"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;in_file&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
-        &lt;span class="n"&gt;nb_json&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nbformat&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;read&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;in_file&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;current_nbformat&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="c1"&gt;# Metadata might not exist in two-file posts or in hand-crafted&lt;/span&gt;
-    &lt;span class="c1"&gt;# .ipynb files.&lt;/span&gt;
-
-    &lt;span class="c1"&gt;# infer metadata&lt;/span&gt;
-    &lt;span class="n"&gt;title&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;splitext&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;basename&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;source&lt;/span&gt;&lt;span class="p"&gt;))[&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
-    &lt;span class="n"&gt;slug&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;title&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;lower&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;replace&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;' '&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'-'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-    &lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;datetime&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;datetime&lt;/span&gt;
-    &lt;span class="n"&gt;date&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;datetime&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fromtimestamp&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;getctime&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;source&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;strftime&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'%Y-%m-&lt;/span&gt;&lt;span class="si"&gt;%d&lt;/span&gt;&lt;span class="s1"&gt; %k:%M:%S'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-
-    &lt;span class="n"&gt;implicit&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="s1"&gt;'title'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="n"&gt;title&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'slug'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;slug&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'date'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="n"&gt;date&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
-    &lt;span class="n"&gt;explicit&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;nb_json&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'metadata'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;{})&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'nikola'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;{})&lt;/span&gt;
-    
-    &lt;span class="c1"&gt;# replace inference with explicit if available&lt;/span&gt;
-    &lt;span class="n"&gt;metadata&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;implicit&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;explicit&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
-
-    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;metadata&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing text_cell rendered"&gt;
-&lt;div class="prompt input_prompt"&gt;
-&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;With this small modification, we instruct Nikola to infer the &lt;code&gt;title&lt;/code&gt; and &lt;code&gt;slug&lt;/code&gt; values based on the filename, and the &lt;code&gt;date&lt;/code&gt; value based on the filesystem. Magical! ✨&lt;/p&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-</description><guid>http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/</guid><pubDate>Tue, 12 Sep 2017 11:00:45 GMT</pubDate></item></channel></rss>
+</description><guid>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</guid><pubDate>Tue, 12 Sep 2017 11:20:54 GMT</pubDate></item></channel></rss>
