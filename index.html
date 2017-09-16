@@ -12,7 +12,7 @@
 <meta name="generator" content="Nikola (getnikola.com)">
 <link rel="alternate" type="application/rss+xml" title="RSS" href="rss.xml">
 <link rel="canonical" href="http://blairhudson.github.io/blog/">
-<!--[if lt IE 9]><script src="assets/js/html5.js"></script><![endif]--><link rel="prefetch" href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/" type="text/html">
+<!--[if lt IE 9]><script src="assets/js/html5.js"></script><![endif]--><link rel="prefetch" href="posts/accessing-jupyter-notebooks-programatically/" type="text/html">
 </head>
 <body>
 <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
@@ -56,7 +56,239 @@
 
     
 <div class="postindex">
-    <article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/" class="u-url">Introduction to Classification using Logistic Regression with Scikit-Learn</a></h1>
+    <article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/accessing-jupyter-notebooks-programatically/" class="u-url">Accessing Jupyter notebooks programatically</a></h1>
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                Blair Hudson
+            </span></p>
+            <p class="dateline"><a href="posts/accessing-jupyter-notebooks-programatically/" rel="bookmark"><time class="published dt-published" datetime="2017-09-16T21:51:05+10:00" title="2017-09-16 21:51">2017-09-16 21:51</time></a></p>
+        </div>
+    </header><div class="e-content entry-content">
+    <div tabindex="-1" id="notebook" class="border-box-sizing">
+    <div class="container" id="notebook-container">
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>You may have seen a previous post where we <a href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn">created a simple classifier</a> using Scikit-Learn's <code>LogisticRegression</code>.</p>
+<p>As we pieced together our model, we structured the code into a class called <code>CustomModel</code>, with two functions: <code>fit</code> and <code>predict</code>.</p>
+<p>To start working programatically with the notebook created in that post, you will first need to install the <code>ipynb</code> package:</p>
+
+<pre><code>pip install git+https://github.com/blairhudson/ipynb</code></pre>
+<p>(Note: This is actually a fork of an <a href="https://github.com/ipython/ipynb">IPython repo</a>. Unfortunately the master has a bug with parsing tuple-based assignments (e.g. <code>X, y = ...</code>). A <a href="https://github.com/ipython/ipynb/pull/34">pull request</a> has been submitted.)</p>
+<p>Now you're ready to go!</p>
+<h3 id="Using-the-ipynb-package">Using the ipynb package<a class="anchor-link" href="posts/accessing-jupyter-notebooks-programatically/#Using-the-ipynb-package">¶</a>
+</h3>
+<p>To simplify things considerably, make sure that you have a copy of <a href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/Introduction%20to%20classification%20using%20Logistic%20Regression%20with%20Scikit-Learn.ipynb">the source</a> in the current working directory, and rename it to <code>model.ipynb</code>.</p>
+<p>Now, thanks to the <code>ipynb</code> package you can access the <code>CustomModel</code> class like this:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [5]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">ipynb.fs.defs.model</span> <span class="k">import</span> <span class="n">CustomModel</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>To prove it, let's generate predictions on the same sample data:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [6]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="k">import</span> <span class="n">load_breast_cancer</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
+
+<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> 
+                                                    <span class="n">train_size</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> 
+                                                    <span class="n">test_size</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> 
+                                                    <span class="n">random_state</span><span class="o">=</span><span class="mi">1234</span><span class="p">)</span> <span class="c1"># more reproducibility</span>
+
+<span class="c1"># load our model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">CustomModel</span><span class="p">()</span>
+
+<span class="c1"># fit our model</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+<span class="c1"># generate some predictions</span>
+<span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt output_prompt">Out[6]:</div>
+
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>array([  9.25168417e-01,   9.99922130e-01,   9.53635418e-01,
+         9.88416588e-01,   9.97542577e-01,   9.95232506e-01,
+         4.60659258e-02,   9.98390194e-01,   6.59002902e-10,
+         2.76899836e-06,   8.30718694e-10,   9.63993586e-01,
+         9.94157890e-01,   9.50980576e-01,   9.96974859e-01,
+         6.97038792e-10,   9.99809391e-01,   9.96431765e-01,
+         9.99363563e-01,   8.43800531e-06,   9.95502414e-01,
+         7.77576547e-03,   1.12727716e-09,   3.40904102e-17,
+         3.68627970e-09,   6.55649762e-01,   3.51723839e-03,
+         9.97326888e-01,   9.98785233e-01,   9.97552026e-01,
+         9.86350517e-01,   9.98844211e-01,   5.70842717e-04,
+         9.87742427e-01,   9.19814189e-01,   9.78443649e-01,
+         9.92882821e-01,   1.14676290e-02,   1.48817234e-01,
+         9.98733024e-01,   4.13813658e-05,   9.93177003e-01,
+         1.72319657e-10,   8.54534408e-01,   8.81187668e-01,
+         9.97568264e-01,   9.98086681e-01,   8.32784885e-01,
+         4.49929586e-11,   8.89087737e-01,   9.28259947e-01,
+         9.91244116e-01,   9.94876558e-01,   1.51106510e-08,
+         2.60668778e-01,   9.99597520e-01,   9.98940073e-01,
+         9.99968817e-01,   9.91318570e-01,   8.29369844e-03,
+         9.93238377e-01,   9.92431535e-01,   9.29775117e-01,
+         9.99271713e-01,   9.96474598e-01,   2.41572863e-04,
+         1.51376226e-11,   9.97330558e-01,   9.98831771e-01,
+         4.79400697e-01,   9.99798779e-01,   3.57307727e-07,
+         9.99656809e-01,   7.03641088e-01,   9.98247027e-01,
+         9.96093354e-01,   9.99588791e-01,   2.58369708e-08,
+         9.98136922e-01,   7.97865310e-03,   9.99065333e-01,
+         9.98470351e-01,   9.94581260e-01,   9.29328694e-01,
+         1.41996390e-02,   1.43214384e-04,   3.71155631e-05,
+         4.45838811e-06,   9.13207438e-01,   8.56295696e-01,
+         9.99467328e-01,   9.74324559e-01,   9.99328632e-01,
+         2.91312374e-12,   1.00998256e-01,   9.86992421e-01,
+         9.97149193e-01,   9.13815924e-01,   9.98807818e-01,
+         9.84005486e-01,   3.17865443e-08,   2.30937811e-11,
+         9.98036358e-01,   9.99532884e-01,   1.24075526e-03,
+         9.98819765e-01,   9.99752279e-01,   8.53677349e-04,
+         1.53192255e-01,   9.30832406e-01,   1.49723823e-05,
+         5.28688983e-01,   1.48786146e-03,   9.92804571e-51,
+         8.86447353e-01,   9.95516043e-01,   9.98554149e-01,
+         1.75078944e-03,   9.99922978e-01,   4.67159833e-01,
+         9.99825913e-01,   9.57716419e-01,   9.95069689e-01,
+         9.98728887e-01,   7.49375338e-14,   9.92513330e-01,
+         1.49918676e-02,   1.63977226e-02,   9.95785292e-01,
+         9.56124754e-01,   3.53639065e-01,   9.96011137e-01,
+         7.27728677e-33,   9.97779030e-01,   7.77872222e-02,
+         9.90058068e-01,   9.80367925e-01,   2.92408222e-01,
+         9.98164180e-01,   1.67926421e-01,   9.99996297e-01,
+         6.35631576e-10,   1.06440027e-01])</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Magic ✨</p>
+
+</div>
+</div>
+</div>
+    </div>
+  </div>
+
+    </div>
+    </article><article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/using-jupyter-notebooks-with-anaconda/" class="u-url">Using Jupyter notebooks with Anaconda</a></h1>
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                Blair Hudson
+            </span></p>
+            <p class="dateline"><a href="posts/using-jupyter-notebooks-with-anaconda/" rel="bookmark"><time class="published dt-published" datetime="2017-09-16T20:08:20+10:00" title="2017-09-16 20:08">2017-09-16 20:08</time></a></p>
+        </div>
+    </header><div class="e-content entry-content">
+    <div tabindex="-1" id="notebook" class="border-box-sizing">
+    <div class="container" id="notebook-container">
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Jupyter is a popular data science environment, and Jupyter notebooks (such as <a href="posts/using-jupyter-notebooks-with-anaconda/Using%20Jupyter%20notebooks%20with%20Anaconda.ipynb">the notebook this post</a> was written with) are a great way to create and share great data science with inline documentation (using Markdown syntax).</p>
+<p>Jupyter is capable of running kernels in many different programming languages, but in this post we're focussed just on Python.</p>
+<h3 id="Installing-Anaconda">Installing Anaconda<a class="anchor-link" href="posts/using-jupyter-notebooks-with-anaconda/#Installing-Anaconda">¶</a>
+</h3>
+<ol>
+<li>Download Anaconda for your operating system from the <a href="https://www.anaconda.com/download">Anaconda website</a>. For best compatibility with modern data science packages, I suggest Python 3.6 version or newer.</li>
+<li>Run the downloaded installer and follow the prompts.</li>
+</ol>
+<h3 id="Launching-Jupyter">Launching Jupyter<a class="anchor-link" href="posts/using-jupyter-notebooks-with-anaconda/#Launching-Jupyter">¶</a>
+</h3>
+<ol>
+<li>Run the following command to launch the Jupyter environment in your current directory:
+ <code>jupyter notebook</code>
+</li>
+<li>By default, this will open the web interface in your default web browser, and by default at <a href="http://localhost:8888/">http://localhost:8888/</a>.</li>
+<li>Now you can select an existing <code>.ipynb</code> file from the file navigator to open it, or create a new notebook.</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [1]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">"🚀"</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt"></div>
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>🚀
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+    </div>
+  </div>
+
+    </div>
+    </article><article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/" class="u-url">Introduction to Classification using Logistic Regression with Scikit-Learn</a></h1>
         <div class="metadata">
             <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
                 Blair Hudson
@@ -795,48 +1027,6 @@
 </div>
 </div>
 
-</div>
-    </div>
-  </div>
-
-    </div>
-    </article><article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/using-jupyter-notebooks-with-anaconda/" class="u-url">Using Jupyter notebooks with Anaconda</a></h1>
-        <div class="metadata">
-            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
-                Blair Hudson
-            </span></p>
-            <p class="dateline"><a href="posts/using-jupyter-notebooks-with-anaconda/" rel="bookmark"><time class="published dt-published" datetime="2017-09-12T21:20:54+10:00" title="2017-09-12 21:20">2017-09-12 21:20</time></a></p>
-        </div>
-    </header><div class="e-content entry-content">
-    <div tabindex="-1" id="notebook" class="border-box-sizing">
-    <div class="container" id="notebook-container">
-
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>Jupyter is a popular data science environment, and Jupyter notebooks (such as <a href="posts/using-jupyter-notebooks-with-anaconda/index.ipynb">the notebook this post</a> was written with) are a great way to create and share great data science with inline documentation (using Markdown syntax).</p>
-<p>Jupyter is capable of running kernels in many different programming languages, but in this post we're focussed just on Python.</p>
-<h3 id="Installing-Anaconda">Installing Anaconda<a class="anchor-link" href="posts/using-jupyter-notebooks-with-anaconda/#Installing-Anaconda">¶</a>
-</h3>
-<ol>
-<li>Download Anaconda for your operating system from the <a href="https://www.anaconda.com/download">Anaconda website</a>. For best compatibility with modern data science packages, I suggest Python 3.6 version or newer.</li>
-<li>Run the downloaded installer and follow the prompts.</li>
-</ol>
-<h3 id="Launching-Jupyter">Launching Jupyter<a class="anchor-link" href="posts/using-jupyter-notebooks-with-anaconda/#Launching-Jupyter">¶</a>
-</h3>
-<ol>
-<li>Run the following command to launch the Jupyter environment in your current directory:
- <code>jupyter notebook</code>
-</li>
-<li>By default, this will open the web interface in your default web browser, and by default at <a href="http://localhost:8888/">http://localhost:8888/</a>.</li>
-<li>Now you can select an existing <code>.ipynb</code> file from the file navigator to open it, or create a new notebook.</li>
-</ol>
-<p>🚀</p>
-
-</div>
-</div>
 </div>
     </div>
   </div>

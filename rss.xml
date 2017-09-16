@@ -1,5 +1,211 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link rel="self" href="http://blairhudson.github.io/blog/rss.xml" type="application/rss+xml"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Sat, 16 Sep 2017 09:55:39 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Introduction to Classification using Logistic Regression with Scikit-Learn</title><link>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link rel="self" href="http://blairhudson.github.io/blog/rss.xml" type="application/rss+xml"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Sat, 16 Sep 2017 11:51:47 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Accessing Jupyter notebooks programatically</title><link>http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+    &lt;div class="container" id="notebook-container"&gt;
+
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;You may have seen a previous post where we &lt;a href="http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn"&gt;created a simple classifier&lt;/a&gt; using Scikit-Learn's &lt;code&gt;LogisticRegression&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;As we pieced together our model, we structured the code into a class called &lt;code&gt;CustomModel&lt;/code&gt;, with two functions: &lt;code&gt;fit&lt;/code&gt; and &lt;code&gt;predict&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;To start working programatically with the notebook created in that post, you will first need to install the &lt;code&gt;ipynb&lt;/code&gt; package:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;pip install git+https://github.com/blairhudson/ipynb&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;(Note: This is actually a fork of an &lt;a href="https://github.com/ipython/ipynb"&gt;IPython repo&lt;/a&gt;. Unfortunately the master has a bug with parsing tuple-based assignments (e.g. &lt;code&gt;X, y = ...&lt;/code&gt;). A &lt;a href="https://github.com/ipython/ipynb/pull/34"&gt;pull request&lt;/a&gt; has been submitted.)&lt;/p&gt;
+&lt;p&gt;Now you're ready to go!&lt;/p&gt;
+&lt;h3 id="Using-the-ipynb-package"&gt;Using the ipynb package&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/#Using-the-ipynb-package"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;To simplify things considerably, make sure that you have a copy of &lt;a href="http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/Introduction%20to%20classification%20using%20Logistic%20Regression%20with%20Scikit-Learn.ipynb"&gt;the source&lt;/a&gt; in the current working directory, and rename it to &lt;code&gt;model.ipynb&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Now, thanks to the &lt;code&gt;ipynb&lt;/code&gt; package you can access the &lt;code&gt;CustomModel&lt;/code&gt; class like this:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [5]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;ipynb.fs.defs.model&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;CustomModel&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;To prove it, let's generate predictions on the same sample data:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [6]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.datasets&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.model_selection&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;
+
+&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;return_X_y&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;train_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.75&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;test_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.25&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="c1"&gt;# more reproducibility&lt;/span&gt;
+
+&lt;span class="c1"&gt;# load our model&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CustomModel&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+&lt;span class="c1"&gt;# fit our model&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# generate some predictions&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt output_prompt"&gt;Out[6]:&lt;/div&gt;
+
+
+
+&lt;div class="output_text output_subarea output_execute_result"&gt;
+&lt;pre&gt;array([  9.25168417e-01,   9.99922130e-01,   9.53635418e-01,
+         9.88416588e-01,   9.97542577e-01,   9.95232506e-01,
+         4.60659258e-02,   9.98390194e-01,   6.59002902e-10,
+         2.76899836e-06,   8.30718694e-10,   9.63993586e-01,
+         9.94157890e-01,   9.50980576e-01,   9.96974859e-01,
+         6.97038792e-10,   9.99809391e-01,   9.96431765e-01,
+         9.99363563e-01,   8.43800531e-06,   9.95502414e-01,
+         7.77576547e-03,   1.12727716e-09,   3.40904102e-17,
+         3.68627970e-09,   6.55649762e-01,   3.51723839e-03,
+         9.97326888e-01,   9.98785233e-01,   9.97552026e-01,
+         9.86350517e-01,   9.98844211e-01,   5.70842717e-04,
+         9.87742427e-01,   9.19814189e-01,   9.78443649e-01,
+         9.92882821e-01,   1.14676290e-02,   1.48817234e-01,
+         9.98733024e-01,   4.13813658e-05,   9.93177003e-01,
+         1.72319657e-10,   8.54534408e-01,   8.81187668e-01,
+         9.97568264e-01,   9.98086681e-01,   8.32784885e-01,
+         4.49929586e-11,   8.89087737e-01,   9.28259947e-01,
+         9.91244116e-01,   9.94876558e-01,   1.51106510e-08,
+         2.60668778e-01,   9.99597520e-01,   9.98940073e-01,
+         9.99968817e-01,   9.91318570e-01,   8.29369844e-03,
+         9.93238377e-01,   9.92431535e-01,   9.29775117e-01,
+         9.99271713e-01,   9.96474598e-01,   2.41572863e-04,
+         1.51376226e-11,   9.97330558e-01,   9.98831771e-01,
+         4.79400697e-01,   9.99798779e-01,   3.57307727e-07,
+         9.99656809e-01,   7.03641088e-01,   9.98247027e-01,
+         9.96093354e-01,   9.99588791e-01,   2.58369708e-08,
+         9.98136922e-01,   7.97865310e-03,   9.99065333e-01,
+         9.98470351e-01,   9.94581260e-01,   9.29328694e-01,
+         1.41996390e-02,   1.43214384e-04,   3.71155631e-05,
+         4.45838811e-06,   9.13207438e-01,   8.56295696e-01,
+         9.99467328e-01,   9.74324559e-01,   9.99328632e-01,
+         2.91312374e-12,   1.00998256e-01,   9.86992421e-01,
+         9.97149193e-01,   9.13815924e-01,   9.98807818e-01,
+         9.84005486e-01,   3.17865443e-08,   2.30937811e-11,
+         9.98036358e-01,   9.99532884e-01,   1.24075526e-03,
+         9.98819765e-01,   9.99752279e-01,   8.53677349e-04,
+         1.53192255e-01,   9.30832406e-01,   1.49723823e-05,
+         5.28688983e-01,   1.48786146e-03,   9.92804571e-51,
+         8.86447353e-01,   9.95516043e-01,   9.98554149e-01,
+         1.75078944e-03,   9.99922978e-01,   4.67159833e-01,
+         9.99825913e-01,   9.57716419e-01,   9.95069689e-01,
+         9.98728887e-01,   7.49375338e-14,   9.92513330e-01,
+         1.49918676e-02,   1.63977226e-02,   9.95785292e-01,
+         9.56124754e-01,   3.53639065e-01,   9.96011137e-01,
+         7.27728677e-33,   9.97779030e-01,   7.77872222e-02,
+         9.90058068e-01,   9.80367925e-01,   2.92408222e-01,
+         9.98164180e-01,   1.67926421e-01,   9.99996297e-01,
+         6.35631576e-10,   1.06440027e-01])&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Magic ✨&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/</guid><pubDate>Sat, 16 Sep 2017 11:51:05 GMT</pubDate></item><item><title>Using Jupyter notebooks with Anaconda</title><link>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+    &lt;div class="container" id="notebook-container"&gt;
+
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Jupyter is a popular data science environment, and Jupyter notebooks (such as &lt;a href="http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/Using%20Jupyter%20notebooks%20with%20Anaconda.ipynb"&gt;the notebook this post&lt;/a&gt; was written with) are a great way to create and share great data science with inline documentation (using Markdown syntax).&lt;/p&gt;
+&lt;p&gt;Jupyter is capable of running kernels in many different programming languages, but in this post we're focussed just on Python.&lt;/p&gt;
+&lt;h3 id="Installing-Anaconda"&gt;Installing Anaconda&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/#Installing-Anaconda"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;ol&gt;
+&lt;li&gt;Download Anaconda for your operating system from the &lt;a href="https://www.anaconda.com/download"&gt;Anaconda website&lt;/a&gt;. For best compatibility with modern data science packages, I suggest Python 3.6 version or newer.&lt;/li&gt;
+&lt;li&gt;Run the downloaded installer and follow the prompts.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id="Launching-Jupyter"&gt;Launching Jupyter&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/#Launching-Jupyter"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;ol&gt;
+&lt;li&gt;Run the following command to launch the Jupyter environment in your current directory:
+ &lt;code&gt;jupyter notebook&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;By default, this will open the web interface in your default web browser, and by default at &lt;a href="http://localhost:8888/"&gt;http://localhost:8888/&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;Now you can select an existing &lt;code&gt;.ipynb&lt;/code&gt; file from the file navigator to open it, or create a new notebook.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [1]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"🚀"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;🚀
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</guid><pubDate>Sat, 16 Sep 2017 10:08:20 GMT</pubDate></item><item><title>Introduction to Classification using Logistic Regression with Scikit-Learn</title><link>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
     &lt;div class="container" id="notebook-container"&gt;
 
 &lt;div class="cell border-box-sizing text_cell rendered"&gt;
@@ -685,31 +891,4 @@
 &lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
-</description><guid>http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/</guid><pubDate>Wed, 13 Sep 2017 11:29:29 GMT</pubDate></item><item><title>Using Jupyter notebooks with Anaconda</title><link>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
-    &lt;div class="container" id="notebook-container"&gt;
-
-&lt;div class="cell border-box-sizing text_cell rendered"&gt;
-&lt;div class="prompt input_prompt"&gt;
-&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;Jupyter is a popular data science environment, and Jupyter notebooks (such as &lt;a href="http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/index.ipynb"&gt;the notebook this post&lt;/a&gt; was written with) are a great way to create and share great data science with inline documentation (using Markdown syntax).&lt;/p&gt;
-&lt;p&gt;Jupyter is capable of running kernels in many different programming languages, but in this post we're focussed just on Python.&lt;/p&gt;
-&lt;h3 id="Installing-Anaconda"&gt;Installing Anaconda&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/#Installing-Anaconda"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;ol&gt;
-&lt;li&gt;Download Anaconda for your operating system from the &lt;a href="https://www.anaconda.com/download"&gt;Anaconda website&lt;/a&gt;. For best compatibility with modern data science packages, I suggest Python 3.6 version or newer.&lt;/li&gt;
-&lt;li&gt;Run the downloaded installer and follow the prompts.&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h3 id="Launching-Jupyter"&gt;Launching Jupyter&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/#Launching-Jupyter"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;ol&gt;
-&lt;li&gt;Run the following command to launch the Jupyter environment in your current directory:
- &lt;code&gt;jupyter notebook&lt;/code&gt;&lt;/li&gt;
-&lt;li&gt;By default, this will open the web interface in your default web browser, and by default at &lt;a href="http://localhost:8888/"&gt;http://localhost:8888/&lt;/a&gt;.&lt;/li&gt;
-&lt;li&gt;Now you can select an existing &lt;code&gt;.ipynb&lt;/code&gt; file from the file navigator to open it, or create a new notebook.&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;🚀&lt;/p&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-</description><guid>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</guid><pubDate>Tue, 12 Sep 2017 11:20:54 GMT</pubDate></item></channel></rss>
+</description><guid>http://blairhudson.github.io/blog/posts/creating-a-blog-with-jupyter-notebooks/</guid><pubDate>Wed, 13 Sep 2017 11:29:29 GMT</pubDate></item></channel></rss>

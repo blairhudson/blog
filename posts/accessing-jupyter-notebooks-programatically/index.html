@@ -3,24 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Introduction to Classification using Logistic Regression with Scikit-Learn | Data Everythingist</title>
+<title>Accessing Jupyter notebooks programatically | Data Everythingist</title>
 <link href="../../assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
 <link href="../../assets/css/ipython.min.css" rel="stylesheet" type="text/css">
 <link href="../../assets/css/nikola_ipython.css" rel="stylesheet" type="text/css">
 <meta name="theme-color" content="#5670d4">
 <meta name="generator" content="Nikola (getnikola.com)">
 <link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
-<link rel="canonical" href="http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/">
+<link rel="canonical" href="http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/">
 <!--[if lt IE 9]><script src="../../assets/js/html5.js"></script><![endif]--><meta name="author" content="Blair Hudson">
-<link rel="prev" href="../optimising-hyper-parameters-efficiently-with-scikit-optimize/" title="Optimising hyper-parameters efficiently with Scikit-Optimize" type="text/html">
-<link rel="next" href="../using-jupyter-notebooks-with-anaconda/" title="Using Jupyter notebooks with Anaconda" type="text/html">
+<link rel="prev" href="../using-jupyter-notebooks-with-anaconda/" title="Using Jupyter notebooks with Anaconda" type="text/html">
 <meta property="og:site_name" content="Data Everythingist">
-<meta property="og:title" content="Introduction to Classification using Logistic Regression with Scikit-L">
-<meta property="og:url" content="http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/">
-<meta property="og:description" content="This post, including the source .ipynb notebook file, will be used as a basis for other topics. You can obtain a copy of the source by clicking the Source link at the post of this post.
-To keep things">
+<meta property="og:title" content="Accessing Jupyter notebooks programatically">
+<meta property="og:url" content="http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/">
+<meta property="og:description" content="You may have seen a previous post where we created a simple classifier using Scikit-Learn's LogisticRegression.
+As we pieced together our model, we structured the code into a class called CustomModel,">
 <meta property="og:type" content="article">
-<meta property="article:published_time" content="2017-09-16T19:53:46+10:00">
+<meta property="article:published_time" content="2017-09-16T21:51:05+10:00">
 </head>
 <body>
 <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
@@ -50,7 +49,7 @@ To keep things">
 </ul>
 <ul class="navbar-nav navbar-right">
 <li class="nav-item">
-    <a href="Introduction%20to%20Classification%20using%20Logistic%20Regression%20with%20Scikit-Learn.ipynb" id="sourcelink" class="nav-link">Source</a>
+    <a href="Accessing%20Jupyter%20notebooks%20programatically.ipynb" id="sourcelink" class="nav-link">Source</a>
     </li>
 
                 
@@ -64,15 +63,15 @@ To keep things">
         <!--Body content-->
         
         
-<article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="." class="u-url">Introduction to Classification using Logistic Regression with Scikit-Learn</a></h1>
+<article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="." class="u-url">Accessing Jupyter notebooks programatically</a></h1>
 
         <div class="metadata">
             <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
                     Blair Hudson
             </span></p>
-            <p class="dateline"><a href="." rel="bookmark"><time class="published dt-published" datetime="2017-09-16T19:53:46+10:00" itemprop="datePublished" title="2017-09-16 19:53">2017-09-16 19:53</time></a></p>
+            <p class="dateline"><a href="." rel="bookmark"><time class="published dt-published" datetime="2017-09-16T21:51:05+10:00" itemprop="datePublished" title="2017-09-16 21:51">2017-09-16 21:51</time></a></p>
             
-        <p class="sourceline"><a href="Introduction%20to%20Classification%20using%20Logistic%20Regression%20with%20Scikit-Learn.ipynb" class="sourcelink">Source</a></p>
+        <p class="sourceline"><a href="Accessing%20Jupyter%20notebooks%20programatically.ipynb" class="sourcelink">Source</a></p>
 
         </div>
         
@@ -86,62 +85,27 @@ To keep things">
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>This post, including the source <code>.ipynb</code> notebook file, will be used as a basis for other topics. You can obtain a copy of the source by clicking the <em>Source</em> link at the post of this post.</p>
-<p>To keep things simple, we're going to utilise one of the <a href="http://scikit-learn.org/stable/modules/classes.html#module-sklearn.datasets">many toy datasets</a> built into Scikit-Learn! (And yes, it is a <a href="https://goo.gl/U2Uwz2">real dataset</a>.)</p>
-<p>We're also not going to explain <em>how</em> Scikit-Learn's <code>LogisticRegression</code> is implemented in this post.</p>
-<p>To structure our code, we will define our model in two parts:</p>
-<ul>
-<li>The code we need to fit our model</li>
-<li>The code we need to use our fitted model to generate predictions</li>
-</ul>
-<p>When it comes to model building, these are the two main functional components - so, and for reasons which will be explained in other posts, we're going to build a Python class called <code>CustomModel</code>, with a function for each of these components:</p>
+<p>You may have seen a previous post where we <a href="../introduction-to-classification-using-logistic-regression-with-scikit-learn">created a simple classifier</a> using Scikit-Learn's <code>LogisticRegression</code>.</p>
+<p>As we pieced together our model, we structured the code into a class called <code>CustomModel</code>, with two functions: <code>fit</code> and <code>predict</code>.</p>
+<p>To start working programatically with the notebook created in that post, you will first need to install the <code>ipynb</code> package:</p>
+
+<pre><code>pip install git+https://github.com/blairhudson/ipynb</code></pre>
+<p>(Note: This is actually a fork of an <a href="https://github.com/ipython/ipynb">IPython repo</a>. Unfortunately the master has a bug with parsing tuple-based assignments (e.g. <code>X, y = ...</code>). A <a href="https://github.com/ipython/ipynb/pull/34">pull request</a> has been submitted.)</p>
+<p>Now you're ready to go!</p>
+<h3 id="Using-the-ipynb-package">Using the ipynb package<a class="anchor-link" href="#Using-the-ipynb-package">¶</a>
+</h3>
+<p>To simplify things considerably, make sure that you have a copy of <a href="../introduction-to-classification-using-logistic-regression-with-scikit-learn/Introduction%20to%20classification%20using%20Logistic%20Regression%20with%20Scikit-Learn.ipynb">the source</a> in the current working directory, and rename it to <code>model.ipynb</code>.</p>
+<p>Now, thanks to the <code>ipynb</code> package you can access the <code>CustomModel</code> class like this:</p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In [1]:</div>
+<div class="prompt input_prompt">In [5]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="k">import</span> <span class="n">LogisticRegression</span>
-
-<span class="k">class</span> <span class="nc">CustomModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    
-    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-
-        <span class="c1"># LogisticRegression implements a number of parameters, you can read about them here:</span>
-        <span class="c1"># http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html</span>
-        <span class="c1">#</span>
-        <span class="c1"># With the exception of `random_state`, each of these are the defaults.</span>
-        
-        <span class="n">model_params</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">'penalty'</span><span class="p">:</span> <span class="s1">'l2'</span><span class="p">,</span>
-            <span class="s1">'dual'</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-            <span class="s1">'tol'</span><span class="p">:</span> <span class="mf">0.0001</span><span class="p">,</span>
-            <span class="s1">'C'</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
-            <span class="s1">'fit_intercept'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-            <span class="s1">'intercept_scaling'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="s1">'class_weight'</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s1">'random_state'</span><span class="p">:</span> <span class="mi">1234</span><span class="p">,</span>    <span class="c1"># Fixed to 1234 for reproducibility</span>
-            <span class="s1">'solver'</span><span class="p">:</span> <span class="s1">'liblinear'</span><span class="p">,</span>
-            <span class="s1">'max_iter'</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
-            <span class="s1">'multi_class'</span><span class="p">:</span> <span class="s1">'ovr'</span><span class="p">,</span>
-            <span class="s1">'verbose'</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-            <span class="s1">'warm_start'</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-            <span class="s1">'n_jobs'</span><span class="p">:</span> <span class="mi">1</span>
-        <span class="p">}</span>
-    
-        <span class="bp">self</span><span class="o">.</span><span class="n">clf</span> <span class="o">=</span> <span class="n">LogisticRegression</span><span class="p">(</span><span class="o">**</span><span class="n">model_params</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-        
-        <span class="k">return</span> <span class="bp">self</span> <span class="c1"># fun fact: returning self enables method chaining i.e. .fit().predict()</span>
-
-    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
-        
-        <span class="c1"># We only want to output the positive case (the second column returned by `predict_proba`:</span>
-    
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">]</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">ipynb.fs.defs.model</span> <span class="k">import</span> <span class="n">CustomModel</span>
 </pre></div>
 
 </div>
@@ -154,18 +118,14 @@ To keep things">
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Now we're ready to use our model!</p>
-<p>In the next section we're going to load the sample data discussed above, and divide it into two portions:</p>
-<ul>
-<li>75% for model fitting</li>
-<li>25% for predictions</li>
-</ul>
+<p>To prove it, let's generate predictions on the same sample data:</p>
+
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In [2]:</div>
+<div class="prompt input_prompt">In [6]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="k">import</span> <span class="n">load_breast_cancer</span>
@@ -177,29 +137,8 @@ To keep things">
                                                     <span class="n">train_size</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> 
                                                     <span class="n">test_size</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> 
                                                     <span class="n">random_state</span><span class="o">=</span><span class="mi">1234</span><span class="p">)</span> <span class="c1"># more reproducibility</span>
-</pre></div>
 
-</div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>Now we have everything we need, lets load up our model, fit it with the training data, and generate some predictions:</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In [3]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># load our model</span>
+<span class="c1"># load our model</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">CustomModel</span><span class="p">()</span>
 
 <span class="c1"># fit our model</span>
@@ -218,7 +157,7 @@ To keep things">
 
 
 <div class="output_area">
-<div class="prompt output_prompt">Out[3]:</div>
+<div class="prompt output_prompt">Out[6]:</div>
 
 
 
@@ -279,16 +218,23 @@ To keep things">
 </div>
 
 </div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Magic ✨</p>
+
+</div>
+</div>
+</div>
     </div>
   </div>
 
     </div>
     <aside class="postpromonav"><nav><ul class="pager hidden-print">
 <li class="previous">
-                <a href="../optimising-hyper-parameters-efficiently-with-scikit-optimize/" rel="prev" title="Optimising hyper-parameters efficiently with Scikit-Optimize">Previous post</a>
-            </li>
-            <li class="next">
-                <a href="../using-jupyter-notebooks-with-anaconda/" rel="next" title="Using Jupyter notebooks with Anaconda">Next post</a>
+                <a href="../using-jupyter-notebooks-with-anaconda/" rel="prev" title="Using Jupyter notebooks with Anaconda">Previous post</a>
             </li>
         </ul></nav></aside><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML" integrity="sha256-SDRP1VVYu+tgAGKhddBSl5+ezofHKZeI+OzxakbIe/Y=" crossorigin="anonymous"></script><script type="text/x-mathjax-config">
         MathJax.Hub.Config({tex2jax: {inlineMath: [['$latex ','$'], ['\\(','\\)']]}});
