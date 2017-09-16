@@ -12,7 +12,7 @@
 <meta name="generator" content="Nikola (getnikola.com)">
 <link rel="alternate" type="application/rss+xml" title="RSS" href="rss.xml">
 <link rel="canonical" href="http://blairhudson.github.io/blog/">
-<!--[if lt IE 9]><script src="assets/js/html5.js"></script><![endif]--><link rel="prefetch" href="posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/" type="text/html">
+<!--[if lt IE 9]><script src="assets/js/html5.js"></script><![endif]--><link rel="prefetch" href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/" type="text/html">
 </head>
 <body>
 <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
@@ -56,7 +56,220 @@
 
     
 <div class="postindex">
-    <article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/" class="u-url">Optimising hyper-parameters efficiently with Scikit-Optimize</a></h1>
+    <article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/" class="u-url">Introduction to Classification using Logistic Regression with Scikit-Learn</a></h1>
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                Blair Hudson
+            </span></p>
+            <p class="dateline"><a href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/" rel="bookmark"><time class="published dt-published" datetime="2017-09-16T19:45:46+10:00" title="2017-09-16 19:45">2017-09-16 19:45</time></a></p>
+        </div>
+    </header><div class="e-content entry-content">
+    <div tabindex="-1" id="notebook" class="border-box-sizing">
+    <div class="container" id="notebook-container">
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>This post, including the source <code>.ipynb</code> notebook file, will be used as a basis for other topics. You can obtain a copy of the source by clicking the <em>Source</em> link at the post of this post.</p>
+<p>To keep things simple, we're going to utilise one of the <a href="http://scikit-learn.org/stable/modules/classes.html#module-sklearn.datasets">many toy datasets</a> built into Scikit-Learn! (And yes, it is a <a href="https://goo.gl/U2Uwz2">real dataset</a>.)</p>
+<p>We're also not going to explain <em>how</em> Scikit-Learn's <code>LogisticRegression</code> is implemented in this post.</p>
+<p>To structure our code, we will define our model in two parts:</p>
+<ul>
+<li>The code we need to fit our model</li>
+<li>The code we need to use our fitted model to generate predictions</li>
+</ul>
+<p>When it comes to model building, these are the two main functional components - so, and for reasons which will be explained in other posts, we're going to build a Python class called <code>CustomerModel</code>, with a function for each of these components:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [1]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="k">import</span> <span class="n">LogisticRegression</span>
+
+<span class="k">class</span> <span class="nc">CustomModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+
+        <span class="c1"># LogisticRegression implements a number of parameters, you can read about them here:</span>
+        <span class="c1"># http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html</span>
+        <span class="c1">#</span>
+        <span class="c1"># With the exception of `random_state`, each of these are the defaults.</span>
+        
+        <span class="n">model_params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">'penalty'</span><span class="p">:</span> <span class="s1">'l2'</span><span class="p">,</span>
+            <span class="s1">'dual'</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s1">'tol'</span><span class="p">:</span> <span class="mf">0.0001</span><span class="p">,</span>
+            <span class="s1">'C'</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="s1">'fit_intercept'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s1">'intercept_scaling'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">'class_weight'</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">'random_state'</span><span class="p">:</span> <span class="mi">1234</span><span class="p">,</span>    <span class="c1"># Fixed to 1234 for reproducibility</span>
+            <span class="s1">'solver'</span><span class="p">:</span> <span class="s1">'liblinear'</span><span class="p">,</span>
+            <span class="s1">'max_iter'</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+            <span class="s1">'multi_class'</span><span class="p">:</span> <span class="s1">'ovr'</span><span class="p">,</span>
+            <span class="s1">'verbose'</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">'warm_start'</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s1">'n_jobs'</span><span class="p">:</span> <span class="mi">1</span>
+        <span class="p">}</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">clf</span> <span class="o">=</span> <span class="n">LogisticRegression</span><span class="p">(</span><span class="o">**</span><span class="n">model_params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span> <span class="c1"># fun fact: returning self enables method chaining i.e. .fit().predict()</span>
+
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        
+        <span class="c1"># We only want to output the positive case (the second column returned by `predict_proba`:</span>
+    
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now we're ready to use our model!</p>
+<p>In the next section we're going to load the sample data discussed above, and divide it into two portions:</p>
+<ul>
+<li>75% for model fitting</li>
+<li>25% for predictions</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [2]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="k">import</span> <span class="n">load_breast_cancer</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
+
+<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> 
+                                                    <span class="n">train_size</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> 
+                                                    <span class="n">test_size</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> 
+                                                    <span class="n">random_state</span><span class="o">=</span><span class="mi">1234</span><span class="p">)</span> <span class="c1"># more reproducibility</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now we have everything we need, lets load up our model, fit it with the training data, and generate some predictions:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [3]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># load our model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">CustomModel</span><span class="p">()</span>
+
+<span class="c1"># fit our model</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+<span class="c1"># generate some predictions</span>
+<span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt output_prompt">Out[3]:</div>
+
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>array([  9.25168417e-01,   9.99922130e-01,   9.53635418e-01,
+         9.88416588e-01,   9.97542577e-01,   9.95232506e-01,
+         4.60659258e-02,   9.98390194e-01,   6.59002902e-10,
+         2.76899836e-06,   8.30718694e-10,   9.63993586e-01,
+         9.94157890e-01,   9.50980576e-01,   9.96974859e-01,
+         6.97038792e-10,   9.99809391e-01,   9.96431765e-01,
+         9.99363563e-01,   8.43800531e-06,   9.95502414e-01,
+         7.77576547e-03,   1.12727716e-09,   3.40904102e-17,
+         3.68627970e-09,   6.55649762e-01,   3.51723839e-03,
+         9.97326888e-01,   9.98785233e-01,   9.97552026e-01,
+         9.86350517e-01,   9.98844211e-01,   5.70842717e-04,
+         9.87742427e-01,   9.19814189e-01,   9.78443649e-01,
+         9.92882821e-01,   1.14676290e-02,   1.48817234e-01,
+         9.98733024e-01,   4.13813658e-05,   9.93177003e-01,
+         1.72319657e-10,   8.54534408e-01,   8.81187668e-01,
+         9.97568264e-01,   9.98086681e-01,   8.32784885e-01,
+         4.49929586e-11,   8.89087737e-01,   9.28259947e-01,
+         9.91244116e-01,   9.94876558e-01,   1.51106510e-08,
+         2.60668778e-01,   9.99597520e-01,   9.98940073e-01,
+         9.99968817e-01,   9.91318570e-01,   8.29369844e-03,
+         9.93238377e-01,   9.92431535e-01,   9.29775117e-01,
+         9.99271713e-01,   9.96474598e-01,   2.41572863e-04,
+         1.51376226e-11,   9.97330558e-01,   9.98831771e-01,
+         4.79400697e-01,   9.99798779e-01,   3.57307727e-07,
+         9.99656809e-01,   7.03641088e-01,   9.98247027e-01,
+         9.96093354e-01,   9.99588791e-01,   2.58369708e-08,
+         9.98136922e-01,   7.97865310e-03,   9.99065333e-01,
+         9.98470351e-01,   9.94581260e-01,   9.29328694e-01,
+         1.41996390e-02,   1.43214384e-04,   3.71155631e-05,
+         4.45838811e-06,   9.13207438e-01,   8.56295696e-01,
+         9.99467328e-01,   9.74324559e-01,   9.99328632e-01,
+         2.91312374e-12,   1.00998256e-01,   9.86992421e-01,
+         9.97149193e-01,   9.13815924e-01,   9.98807818e-01,
+         9.84005486e-01,   3.17865443e-08,   2.30937811e-11,
+         9.98036358e-01,   9.99532884e-01,   1.24075526e-03,
+         9.98819765e-01,   9.99752279e-01,   8.53677349e-04,
+         1.53192255e-01,   9.30832406e-01,   1.49723823e-05,
+         5.28688983e-01,   1.48786146e-03,   9.92804571e-51,
+         8.86447353e-01,   9.95516043e-01,   9.98554149e-01,
+         1.75078944e-03,   9.99922978e-01,   4.67159833e-01,
+         9.99825913e-01,   9.57716419e-01,   9.95069689e-01,
+         9.98728887e-01,   7.49375338e-14,   9.92513330e-01,
+         1.49918676e-02,   1.63977226e-02,   9.95785292e-01,
+         9.56124754e-01,   3.53639065e-01,   9.96011137e-01,
+         7.27728677e-33,   9.97779030e-01,   7.77872222e-02,
+         9.90058068e-01,   9.80367925e-01,   2.92408222e-01,
+         9.98164180e-01,   1.67926421e-01,   9.99996297e-01,
+         6.35631576e-10,   1.06440027e-01])</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    </div>
+  </div>
+
+    </div>
+    </article><article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/" class="u-url">Optimising hyper-parameters efficiently with Scikit-Optimize</a></h1>
         <div class="metadata">
             <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
                 Blair Hudson
