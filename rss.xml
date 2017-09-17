@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link rel="self" type="application/rss+xml" href="http://blairhudson.github.io/blog/rss.xml"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Sat, 16 Sep 2017 12:13:29 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Accessing Jupyter notebooks programatically</title><link>http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link href="http://blairhudson.github.io/blog/rss.xml" type="application/rss+xml" rel="self"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Sun, 17 Sep 2017 11:02:51 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Building a utility function wrapper for Scikit-Learn models</title><link>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
     &lt;div class="container" id="notebook-container"&gt;
 
 &lt;div class="cell border-box-sizing text_cell rendered"&gt;
@@ -7,7 +7,495 @@
 &lt;/div&gt;
 &lt;div class="inner_cell"&gt;
 &lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;You may have seen a previous post where we &lt;a href="http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn"&gt;created a simple classifier&lt;/a&gt; using Scikit-Learn's &lt;code&gt;LogisticRegression&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;In a previous post we learned how to &lt;a href="http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically"&gt;access a notebook programmatically&lt;/a&gt; using the &lt;code&gt;ipynb&lt;/code&gt; package.&lt;/p&gt;
+&lt;p&gt;This is very powerful as it allows a data scientist to focus on implementing a model which is re-usable, specifying a &lt;code&gt;fit&lt;/code&gt; and &lt;code&gt;predict&lt;/code&gt; method to provide some structure to their code.&lt;/p&gt;
+&lt;p&gt;In this post, we're going to build a utility wrapper which takes the previous code and the following functionality:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Serialization, so we don't have to re-fit models if we don't need to&lt;/li&gt;
+&lt;li&gt;Scoring, so we can determine how well our model is performing&lt;/li&gt;
+&lt;li&gt;Feature importance, so we can determine the predictive power of individual features - and provide insight into feature selection&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="Building-the-wrapper"&gt;Building the wrapper&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/#Building-the-wrapper"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;Here is the code:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [158]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.externals&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;joblib&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.metrics&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;roc_auc_score&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.exceptions&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;NotFittedError&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;os.path&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;ModelUtils&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;object&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;__init__&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;serialize_path&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="sd"&gt;"""&lt;/span&gt;
+&lt;span class="sd"&gt;            If serialize_path is specified and valid, load the model from disk.&lt;/span&gt;
+&lt;span class="sd"&gt;        """&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;serialize_path&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;serialize_path&lt;/span&gt;
+        
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;serialize_path&lt;/span&gt; &lt;span class="ow"&gt;is&lt;/span&gt; &lt;span class="ow"&gt;not&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt; &lt;span class="ow"&gt;and&lt;/span&gt; &lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;exists&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;serialize_path&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+            &lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'Loaded from'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;serialize_path&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+            &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;joblib&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;load&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;serialize_path&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+            &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;is_fitted&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kc"&gt;True&lt;/span&gt;
+            &lt;span class="k"&gt;return&lt;/span&gt;
+        
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;model&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;is_fitted&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="sd"&gt;"""&lt;/span&gt;
+&lt;span class="sd"&gt;            Fit our model, saving the model to disk if serialize_path is specified.&lt;/span&gt;
+&lt;span class="sd"&gt;        """&lt;/span&gt;
+        &lt;span class="c1"&gt;# fit our model&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;is_fitted&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kc"&gt;True&lt;/span&gt;
+        
+        &lt;span class="c1"&gt;# serialise to path&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;serialize_path&lt;/span&gt; &lt;span class="ow"&gt;is&lt;/span&gt; &lt;span class="ow"&gt;not&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="n"&gt;joblib&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;dump&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;serialize_path&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+            &lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'Saved to'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;serialize_path&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+            
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;
+    
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="ow"&gt;not&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;is_fitted&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="k"&gt;raise&lt;/span&gt; &lt;span class="n"&gt;NotFittedError&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;score&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_true&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="sd"&gt;"""&lt;/span&gt;
+&lt;span class="sd"&gt;            Generates a score for the model based on predicting on X and comparing &lt;/span&gt;
+&lt;span class="sd"&gt;            to y_true.&lt;/span&gt;
+&lt;span class="sd"&gt;        """&lt;/span&gt;
+        &lt;span class="n"&gt;y_pred&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;roc_auc_score&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;y_true&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_pred&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;feature_importance&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;normalize&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="sd"&gt;"""&lt;/span&gt;
+&lt;span class="sd"&gt;            To calculate feature importance, we iterate through each feature i, &lt;/span&gt;
+&lt;span class="sd"&gt;            generating a model score with all other features zeroed.&lt;/span&gt;
+&lt;span class="sd"&gt;            &lt;/span&gt;
+&lt;span class="sd"&gt;            If normalize is True, divide the results by the minimum score, such that&lt;/span&gt;
+&lt;span class="sd"&gt;            each score represents "N times better than the worst feature".&lt;/span&gt;
+&lt;span class="sd"&gt;        """&lt;/span&gt;
+        &lt;span class="n"&gt;scores&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;score&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;__zero_except&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="nb"&gt;range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;shape&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;])]&lt;/span&gt;
+        
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;normalize&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;scores&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="nb"&gt;min&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;scores&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;scores&lt;/span&gt;
+    
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;__zero_except&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="sd"&gt;"""&lt;/span&gt;
+&lt;span class="sd"&gt;            A helper function to replace all but the ith column with zeroes, and &lt;/span&gt;
+&lt;span class="sd"&gt;            return the result. (There is probably a cleaner way to do this.)&lt;/span&gt;
+&lt;span class="sd"&gt;        """&lt;/span&gt;
+        &lt;span class="n"&gt;X_copy&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;copy&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="n"&gt;X_i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;[:,&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+        &lt;span class="n"&gt;X_copy&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fill&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;X_copy&lt;/span&gt;&lt;span class="p"&gt;[:,&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;X_i&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;X_copy&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h3 id="Using-the-wrapper"&gt;Using the wrapper&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/#Using-the-wrapper"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;Now we have our &lt;code&gt;ModelUtils&lt;/code&gt; wrapper class, lets import &lt;code&gt;CustomModel&lt;/code&gt; &lt;a href="http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically"&gt;as before&lt;/a&gt; and put it to work.&lt;/p&gt;
+&lt;p&gt;As we instantiate the wrapper, we're specifying &lt;code&gt;test.pkl&lt;/code&gt; in the current directory as the location to serialize the model.&lt;/p&gt;
+&lt;p&gt;If &lt;code&gt;serialize_path&lt;/code&gt; is configured and valid, the pre-fitted model will be loaded from there, and the &lt;code&gt;predict&lt;/code&gt; function will be immediately available. If configured but the file does not exist, &lt;code&gt;ModelUtils&lt;/code&gt; will serialize to this location after fitting the model.&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [159]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;ipynb.fs.defs.model&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;CustomModel&lt;/span&gt;
+
+&lt;span class="n"&gt;model&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ModelUtils&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;CustomModel&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="n"&gt;serialize_path&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s1"&gt;'test.pkl'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Loaded from test.pkl
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Let's load up the sample data again, and fit our model and then use it to create some predictions. Note the &lt;code&gt;Saved to test.pkl&lt;/code&gt; output.&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [163]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.datasets&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.model_selection&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;
+
+&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;return_X_y&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;train_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.75&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;test_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.25&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="c1"&gt;# more reproducibility&lt;/span&gt;
+
+&lt;span class="c1"&gt;# fit our model (as before)&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# generate some predictions (as before)&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;  &lt;span class="c1"&gt;# fun fact: the ; character suppresses notebook output&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;Saved to test.pkl
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;h3 id="Model-and-feature-performance"&gt;Model and feature performance&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/#Model-and-feature-performance"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;Finally, here are our two new functions.&lt;/p&gt;
+&lt;p&gt;First, let's score the performance of our model. This is using a metric called ROC AUC - we won't explain what that is in this post in any detail, but essentially it is a measure of how well the model can separate each class in &lt;code&gt;y&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Then we will calculate relative feature importance for each of the 30 features in the sample dataset. Based on individual scoring performance, what this means is the the first feature is ~2.12x more powerful than the lowest performing feature, and the best feature is ~35.86x more powerful.&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [166]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# score our model&lt;/span&gt;
+&lt;span class="n"&gt;auc&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;score&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'AUC:'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;auc&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# calculate relative feature importance&lt;/span&gt;
+&lt;span class="n"&gt;importance&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;feature_importance&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'Top feature relative performance:'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nb"&gt;max&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;importance&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;feature_importance&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;AUC: 0.989669421488
+Top feature relative performance: 35.855513308
+[  2.121673     8.6730038   34.85551331   2.06844106  25.14068441
+  29.74904943  33.68060837  34.68441065  24.88973384  15.51711027
+   4.66920152  18.64638783   4.85931559  34.7148289   16.36121673
+  24.82129278  27.2851711   27.96958175  15.74904943  16.24334601   1.
+  29.3269962   35.85551331  35.83269962  26.1634981   30.85931559
+  33.77186312  35.12927757  27.24714829  23.27376426]
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;👏&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</guid><pubDate>Sun, 17 Sep 2017 10:57:08 GMT</pubDate></item><item><title>Introduction to Classification using Logistic Regression with Scikit-Learn</title><link>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+    &lt;div class="container" id="notebook-container"&gt;
+
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;This post, including the source &lt;code&gt;.ipynb&lt;/code&gt; notebook file, will be used as a basis for other topics. You can obtain a copy of the source by clicking the &lt;em&gt;Source&lt;/em&gt; link at the post of this post.&lt;/p&gt;
+&lt;p&gt;To keep things simple, we're going to utilise one of the &lt;a href="http://scikit-learn.org/stable/modules/classes.html#module-sklearn.datasets"&gt;many toy datasets&lt;/a&gt; built into Scikit-Learn! (And yes, it is a &lt;a href="https://goo.gl/U2Uwz2"&gt;real dataset&lt;/a&gt;.)&lt;/p&gt;
+&lt;p&gt;We're also not going to explain &lt;em&gt;how&lt;/em&gt; Scikit-Learn's &lt;code&gt;LogisticRegression&lt;/code&gt; is implemented in this post.&lt;/p&gt;
+&lt;p&gt;To structure our code, we will define our model in two parts:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The code we need to fit our model&lt;/li&gt;
+&lt;li&gt;The code we need to use our fitted model to generate predictions&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;When it comes to model building, these are the two main functional components - so, and for reasons which will be explained in other posts, we're going to build a Python class called &lt;code&gt;CustomModel&lt;/code&gt;, with a function for each of these components:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [1]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.linear_model&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;CustomModel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;object&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+        &lt;span class="c1"&gt;# LogisticRegression implements a number of parameters, you can read about them here:&lt;/span&gt;
+        &lt;span class="c1"&gt;# http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html&lt;/span&gt;
+        &lt;span class="c1"&gt;#&lt;/span&gt;
+        &lt;span class="c1"&gt;# With the exception of `random_state`, each of these are the defaults.&lt;/span&gt;
+        
+        &lt;span class="n"&gt;model_params&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="s1"&gt;'penalty'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'l2'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'dual'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'tol'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mf"&gt;0.0001&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'C'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mf"&gt;1.0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'fit_intercept'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'intercept_scaling'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'class_weight'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'random_state'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;    &lt;span class="c1"&gt;# Fixed to 1234 for reproducibility&lt;/span&gt;
+            &lt;span class="s1"&gt;'solver'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'liblinear'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'max_iter'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;100&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'multi_class'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'ovr'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'verbose'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'warm_start'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'n_jobs'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+    
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;model_params&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt; &lt;span class="c1"&gt;# fun fact: returning self enables method chaining i.e. .fit().predict()&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        
+        &lt;span class="c1"&gt;# We only want to output the positive case (the second column returned by `predict_proba`:&lt;/span&gt;
+    
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict_proba&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;)[:,&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Now we're ready to use our model!&lt;/p&gt;
+&lt;p&gt;In the next section we're going to load the sample data discussed above, and divide it into two portions:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;75% for model fitting&lt;/li&gt;
+&lt;li&gt;25% for predictions&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [2]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.datasets&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.model_selection&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;
+
+&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;return_X_y&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;train_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.75&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;test_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.25&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="c1"&gt;# more reproducibility&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Now we have everything we need, lets load up our model, fit it with the training data, and generate some predictions:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [4]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# load our model&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CustomModel&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+&lt;span class="c1"&gt;# fit our model&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# generate some predictions&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt output_prompt"&gt;Out[4]:&lt;/div&gt;
+
+
+
+&lt;div class="output_text output_subarea output_execute_result"&gt;
+&lt;pre&gt;array([  9.25168417e-01,   9.99922130e-01,   9.53635418e-01,
+         9.88416588e-01,   9.97542577e-01,   9.95232506e-01,
+         4.60659258e-02,   9.98390194e-01,   6.59002902e-10,
+         2.76899836e-06,   8.30718694e-10,   9.63993586e-01,
+         9.94157890e-01,   9.50980576e-01,   9.96974859e-01,
+         6.97038792e-10,   9.99809391e-01,   9.96431765e-01,
+         9.99363563e-01,   8.43800531e-06,   9.95502414e-01,
+         7.77576547e-03,   1.12727716e-09,   3.40904102e-17,
+         3.68627970e-09,   6.55649762e-01,   3.51723839e-03,
+         9.97326888e-01,   9.98785233e-01,   9.97552026e-01,
+         9.86350517e-01,   9.98844211e-01,   5.70842717e-04,
+         9.87742427e-01,   9.19814189e-01,   9.78443649e-01,
+         9.92882821e-01,   1.14676290e-02,   1.48817234e-01,
+         9.98733024e-01,   4.13813658e-05,   9.93177003e-01,
+         1.72319657e-10,   8.54534408e-01,   8.81187668e-01,
+         9.97568264e-01,   9.98086681e-01,   8.32784885e-01,
+         4.49929586e-11,   8.89087737e-01,   9.28259947e-01,
+         9.91244116e-01,   9.94876558e-01,   1.51106510e-08,
+         2.60668778e-01,   9.99597520e-01,   9.98940073e-01,
+         9.99968817e-01,   9.91318570e-01,   8.29369844e-03,
+         9.93238377e-01,   9.92431535e-01,   9.29775117e-01,
+         9.99271713e-01,   9.96474598e-01,   2.41572863e-04,
+         1.51376226e-11,   9.97330558e-01,   9.98831771e-01,
+         4.79400697e-01,   9.99798779e-01,   3.57307727e-07,
+         9.99656809e-01,   7.03641088e-01,   9.98247027e-01,
+         9.96093354e-01,   9.99588791e-01,   2.58369708e-08,
+         9.98136922e-01,   7.97865310e-03,   9.99065333e-01,
+         9.98470351e-01,   9.94581260e-01,   9.29328694e-01,
+         1.41996390e-02,   1.43214384e-04,   3.71155631e-05,
+         4.45838811e-06,   9.13207438e-01,   8.56295696e-01,
+         9.99467328e-01,   9.74324559e-01,   9.99328632e-01,
+         2.91312374e-12,   1.00998256e-01,   9.86992421e-01,
+         9.97149193e-01,   9.13815924e-01,   9.98807818e-01,
+         9.84005486e-01,   3.17865443e-08,   2.30937811e-11,
+         9.98036358e-01,   9.99532884e-01,   1.24075526e-03,
+         9.98819765e-01,   9.99752279e-01,   8.53677349e-04,
+         1.53192255e-01,   9.30832406e-01,   1.49723823e-05,
+         5.28688983e-01,   1.48786146e-03,   9.92804571e-51,
+         8.86447353e-01,   9.95516043e-01,   9.98554149e-01,
+         1.75078944e-03,   9.99922978e-01,   4.67159833e-01,
+         9.99825913e-01,   9.57716419e-01,   9.95069689e-01,
+         9.98728887e-01,   7.49375338e-14,   9.92513330e-01,
+         1.49918676e-02,   1.63977226e-02,   9.95785292e-01,
+         9.56124754e-01,   3.53639065e-01,   9.96011137e-01,
+         7.27728677e-33,   9.97779030e-01,   7.77872222e-02,
+         9.90058068e-01,   9.80367925e-01,   2.92408222e-01,
+         9.98164180e-01,   1.67926421e-01,   9.99996297e-01,
+         6.35631576e-10,   1.06440027e-01])&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [ ]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt; 
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</guid><pubDate>Sun, 17 Sep 2017 10:29:35 GMT</pubDate></item><item><title>Accessing Jupyter notebooks programatically</title><link>http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+    &lt;div class="container" id="notebook-container"&gt;
+
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;In a previous post we &lt;a href="http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn"&gt;created a simple classifier&lt;/a&gt; using Scikit-Learn's &lt;code&gt;LogisticRegression&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;As we pieced together our model, we structured the code into a class called &lt;code&gt;CustomModel&lt;/code&gt;, with two functions: &lt;code&gt;fit&lt;/code&gt; and &lt;code&gt;predict&lt;/code&gt;.&lt;/p&gt;
 &lt;p&gt;To start working programatically with the notebook created in that post, you will first need to install the &lt;code&gt;ipynb&lt;/code&gt; package:&lt;/p&gt;
 
@@ -150,7 +638,7 @@
 &lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
-</description><guid>http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/</guid><pubDate>Sat, 16 Sep 2017 12:12:59 GMT</pubDate></item><item><title>Using Jupyter notebooks with Anaconda</title><link>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/</guid><pubDate>Sun, 17 Sep 2017 10:16:20 GMT</pubDate></item><item><title>Using Jupyter notebooks with Anaconda</title><link>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
     &lt;div class="container" id="notebook-container"&gt;
 
 &lt;div class="cell border-box-sizing text_cell rendered"&gt;
@@ -205,211 +693,7 @@
 &lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
-</description><guid>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</guid><pubDate>Sat, 16 Sep 2017 10:08:20 GMT</pubDate></item><item><title>Introduction to Classification using Logistic Regression with Scikit-Learn</title><link>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
-    &lt;div class="container" id="notebook-container"&gt;
-
-&lt;div class="cell border-box-sizing text_cell rendered"&gt;
-&lt;div class="prompt input_prompt"&gt;
-&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;This post, including the source &lt;code&gt;.ipynb&lt;/code&gt; notebook file, will be used as a basis for other topics. You can obtain a copy of the source by clicking the &lt;em&gt;Source&lt;/em&gt; link at the post of this post.&lt;/p&gt;
-&lt;p&gt;To keep things simple, we're going to utilise one of the &lt;a href="http://scikit-learn.org/stable/modules/classes.html#module-sklearn.datasets"&gt;many toy datasets&lt;/a&gt; built into Scikit-Learn! (And yes, it is a &lt;a href="https://goo.gl/U2Uwz2"&gt;real dataset&lt;/a&gt;.)&lt;/p&gt;
-&lt;p&gt;We're also not going to explain &lt;em&gt;how&lt;/em&gt; Scikit-Learn's &lt;code&gt;LogisticRegression&lt;/code&gt; is implemented in this post.&lt;/p&gt;
-&lt;p&gt;To structure our code, we will define our model in two parts:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;The code we need to fit our model&lt;/li&gt;
-&lt;li&gt;The code we need to use our fitted model to generate predictions&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;When it comes to model building, these are the two main functional components - so, and for reasons which will be explained in other posts, we're going to build a Python class called &lt;code&gt;CustomModel&lt;/code&gt;, with a function for each of these components:&lt;/p&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing code_cell rendered"&gt;
-&lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [1]:&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-    &lt;div class="input_area"&gt;
-&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.linear_model&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;
-
-&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;CustomModel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;object&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-    
-    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-
-        &lt;span class="c1"&gt;# LogisticRegression implements a number of parameters, you can read about them here:&lt;/span&gt;
-        &lt;span class="c1"&gt;# http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html&lt;/span&gt;
-        &lt;span class="c1"&gt;#&lt;/span&gt;
-        &lt;span class="c1"&gt;# With the exception of `random_state`, each of these are the defaults.&lt;/span&gt;
-        
-        &lt;span class="n"&gt;model_params&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
-            &lt;span class="s1"&gt;'penalty'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'l2'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'dual'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'tol'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mf"&gt;0.0001&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'C'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mf"&gt;1.0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'fit_intercept'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'intercept_scaling'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'class_weight'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'random_state'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;    &lt;span class="c1"&gt;# Fixed to 1234 for reproducibility&lt;/span&gt;
-            &lt;span class="s1"&gt;'solver'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'liblinear'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'max_iter'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;100&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'multi_class'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'ovr'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'verbose'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'warm_start'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'n_jobs'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
-        &lt;span class="p"&gt;}&lt;/span&gt;
-    
-        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;model_params&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-        
-        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt; &lt;span class="c1"&gt;# fun fact: returning self enables method chaining i.e. .fit().predict()&lt;/span&gt;
-
-    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-        
-        &lt;span class="c1"&gt;# We only want to output the positive case (the second column returned by `predict_proba`:&lt;/span&gt;
-    
-        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict_proba&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;)[:,&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing text_cell rendered"&gt;
-&lt;div class="prompt input_prompt"&gt;
-&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;Now we're ready to use our model!&lt;/p&gt;
-&lt;p&gt;In the next section we're going to load the sample data discussed above, and divide it into two portions:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;75% for model fitting&lt;/li&gt;
-&lt;li&gt;25% for predictions&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing code_cell rendered"&gt;
-&lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [2]:&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-    &lt;div class="input_area"&gt;
-&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.datasets&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;
-&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.model_selection&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;
-
-&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;return_X_y&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-
-&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
-                                                    &lt;span class="n"&gt;train_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.75&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
-                                                    &lt;span class="n"&gt;test_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.25&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
-                                                    &lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="c1"&gt;# more reproducibility&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing text_cell rendered"&gt;
-&lt;div class="prompt input_prompt"&gt;
-&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;Now we have everything we need, lets load up our model, fit it with the training data, and generate some predictions:&lt;/p&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing code_cell rendered"&gt;
-&lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [3]:&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-    &lt;div class="input_area"&gt;
-&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# load our model&lt;/span&gt;
-&lt;span class="n"&gt;model&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CustomModel&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
-
-&lt;span class="c1"&gt;# fit our model&lt;/span&gt;
-&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-
-&lt;span class="c1"&gt;# generate some predictions&lt;/span&gt;
-&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;div class="output_wrapper"&gt;
-&lt;div class="output"&gt;
-
-
-&lt;div class="output_area"&gt;
-&lt;div class="prompt output_prompt"&gt;Out[3]:&lt;/div&gt;
-
-
-
-&lt;div class="output_text output_subarea output_execute_result"&gt;
-&lt;pre&gt;array([  9.25168417e-01,   9.99922130e-01,   9.53635418e-01,
-         9.88416588e-01,   9.97542577e-01,   9.95232506e-01,
-         4.60659258e-02,   9.98390194e-01,   6.59002902e-10,
-         2.76899836e-06,   8.30718694e-10,   9.63993586e-01,
-         9.94157890e-01,   9.50980576e-01,   9.96974859e-01,
-         6.97038792e-10,   9.99809391e-01,   9.96431765e-01,
-         9.99363563e-01,   8.43800531e-06,   9.95502414e-01,
-         7.77576547e-03,   1.12727716e-09,   3.40904102e-17,
-         3.68627970e-09,   6.55649762e-01,   3.51723839e-03,
-         9.97326888e-01,   9.98785233e-01,   9.97552026e-01,
-         9.86350517e-01,   9.98844211e-01,   5.70842717e-04,
-         9.87742427e-01,   9.19814189e-01,   9.78443649e-01,
-         9.92882821e-01,   1.14676290e-02,   1.48817234e-01,
-         9.98733024e-01,   4.13813658e-05,   9.93177003e-01,
-         1.72319657e-10,   8.54534408e-01,   8.81187668e-01,
-         9.97568264e-01,   9.98086681e-01,   8.32784885e-01,
-         4.49929586e-11,   8.89087737e-01,   9.28259947e-01,
-         9.91244116e-01,   9.94876558e-01,   1.51106510e-08,
-         2.60668778e-01,   9.99597520e-01,   9.98940073e-01,
-         9.99968817e-01,   9.91318570e-01,   8.29369844e-03,
-         9.93238377e-01,   9.92431535e-01,   9.29775117e-01,
-         9.99271713e-01,   9.96474598e-01,   2.41572863e-04,
-         1.51376226e-11,   9.97330558e-01,   9.98831771e-01,
-         4.79400697e-01,   9.99798779e-01,   3.57307727e-07,
-         9.99656809e-01,   7.03641088e-01,   9.98247027e-01,
-         9.96093354e-01,   9.99588791e-01,   2.58369708e-08,
-         9.98136922e-01,   7.97865310e-03,   9.99065333e-01,
-         9.98470351e-01,   9.94581260e-01,   9.29328694e-01,
-         1.41996390e-02,   1.43214384e-04,   3.71155631e-05,
-         4.45838811e-06,   9.13207438e-01,   8.56295696e-01,
-         9.99467328e-01,   9.74324559e-01,   9.99328632e-01,
-         2.91312374e-12,   1.00998256e-01,   9.86992421e-01,
-         9.97149193e-01,   9.13815924e-01,   9.98807818e-01,
-         9.84005486e-01,   3.17865443e-08,   2.30937811e-11,
-         9.98036358e-01,   9.99532884e-01,   1.24075526e-03,
-         9.98819765e-01,   9.99752279e-01,   8.53677349e-04,
-         1.53192255e-01,   9.30832406e-01,   1.49723823e-05,
-         5.28688983e-01,   1.48786146e-03,   9.92804571e-51,
-         8.86447353e-01,   9.95516043e-01,   9.98554149e-01,
-         1.75078944e-03,   9.99922978e-01,   4.67159833e-01,
-         9.99825913e-01,   9.57716419e-01,   9.95069689e-01,
-         9.98728887e-01,   7.49375338e-14,   9.92513330e-01,
-         1.49918676e-02,   1.63977226e-02,   9.95785292e-01,
-         9.56124754e-01,   3.53639065e-01,   9.96011137e-01,
-         7.27728677e-33,   9.97779030e-01,   7.77872222e-02,
-         9.90058068e-01,   9.80367925e-01,   2.92408222e-01,
-         9.98164180e-01,   1.67926421e-01,   9.99996297e-01,
-         6.35631576e-10,   1.06440027e-01])&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-</description><guid>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</guid><pubDate>Sat, 16 Sep 2017 09:53:46 GMT</pubDate></item><item><title>Optimising hyper-parameters efficiently with Scikit-Optimize</title><link>http://blairhudson.github.io/blog/posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/using-jupyter-notebooks-with-anaconda/</guid><pubDate>Sat, 16 Sep 2017 10:08:20 GMT</pubDate></item><item><title>Optimising hyper-parameters efficiently with Scikit-Optimize</title><link>http://blairhudson.github.io/blog/posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
     &lt;div class="container" id="notebook-container"&gt;
 
 &lt;div class="cell border-box-sizing text_cell rendered"&gt;
