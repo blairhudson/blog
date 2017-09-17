@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link href="http://blairhudson.github.io/blog/rss.xml" type="application/rss+xml" rel="self"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Sun, 17 Sep 2017 11:02:51 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Building a utility function wrapper for Scikit-Learn models</title><link>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link type="application/rss+xml" rel="self" href="http://blairhudson.github.io/blog/rss.xml"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Sun, 17 Sep 2017 11:04:55 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Building a utility function wrapper for Scikit-Learn models</title><link>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
     &lt;div class="container" id="notebook-container"&gt;
 
 &lt;div class="cell border-box-sizing text_cell rendered"&gt;
@@ -22,7 +22,7 @@
 &lt;/div&gt;
 &lt;div class="cell border-box-sizing code_cell rendered"&gt;
 &lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [158]:&lt;/div&gt;
+&lt;div class="prompt input_prompt"&gt;In [1]:&lt;/div&gt;
 &lt;div class="inner_cell"&gt;
     &lt;div class="input_area"&gt;
 &lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.externals&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;joblib&lt;/span&gt;
@@ -120,7 +120,7 @@
 &lt;/div&gt;
 &lt;div class="cell border-box-sizing code_cell rendered"&gt;
 &lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [159]:&lt;/div&gt;
+&lt;div class="prompt input_prompt"&gt;In [2]:&lt;/div&gt;
 &lt;div class="inner_cell"&gt;
     &lt;div class="input_area"&gt;
 &lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;ipynb.fs.defs.model&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;CustomModel&lt;/span&gt;
@@ -129,22 +129,6 @@
 &lt;/pre&gt;&lt;/div&gt;
 
 &lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;div class="output_wrapper"&gt;
-&lt;div class="output"&gt;
-
-
-&lt;div class="output_area"&gt;
-&lt;div class="prompt"&gt;&lt;/div&gt;
-
-&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
-&lt;pre&gt;Loaded from test.pkl
-&lt;/pre&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-
 &lt;/div&gt;
 &lt;/div&gt;
 
@@ -161,7 +145,7 @@
 &lt;/div&gt;
 &lt;div class="cell border-box-sizing code_cell rendered"&gt;
 &lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [163]:&lt;/div&gt;
+&lt;div class="prompt input_prompt"&gt;In [3]:&lt;/div&gt;
 &lt;div class="inner_cell"&gt;
     &lt;div class="input_area"&gt;
 &lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.datasets&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;
@@ -216,7 +200,7 @@
 &lt;/div&gt;
 &lt;div class="cell border-box-sizing code_cell rendered"&gt;
 &lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [166]:&lt;/div&gt;
+&lt;div class="prompt input_prompt"&gt;In [4]:&lt;/div&gt;
 &lt;div class="inner_cell"&gt;
     &lt;div class="input_area"&gt;
 &lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# score our model&lt;/span&gt;
@@ -270,7 +254,7 @@ Top feature relative performance: 35.855513308
 &lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
-</description><guid>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</guid><pubDate>Sun, 17 Sep 2017 10:57:08 GMT</pubDate></item><item><title>Introduction to Classification using Logistic Regression with Scikit-Learn</title><link>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</guid><pubDate>Sun, 17 Sep 2017 11:04:40 GMT</pubDate></item><item><title>Introduction to Classification using Logistic Regression with Scikit-Learn</title><link>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
     &lt;div class="container" id="notebook-container"&gt;
 
 &lt;div class="cell border-box-sizing text_cell rendered"&gt;
