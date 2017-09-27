@@ -15,7 +15,7 @@
  </url>
  <url>
   <loc>http://blairhudson.github.io/blog/archive.html</loc>
-  <lastmod>2017-09-17T11:04:00Z</lastmod>
+  <lastmod>2017-09-27T13:01:00Z</lastmod>
  </url>
  <url>
   <loc>http://blairhudson.github.io/blog/categories/</loc>
@@ -32,6 +32,10 @@
  <url>
   <loc>http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/</loc>
   <lastmod>2017-09-17T11:04:00Z</lastmod>
+ </url>
+ <url>
+  <loc>http://blairhudson.github.io/blog/posts/automating-error-analysis-with-rulefit-models/</loc>
+  <lastmod>2017-09-27T13:02:00Z</lastmod>
  </url>
  <url>
   <loc>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</loc>

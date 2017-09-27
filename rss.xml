@@ -1,5 +1,1500 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link type="application/rss+xml" rel="self" href="http://blairhudson.github.io/blog/rss.xml"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Sun, 17 Sep 2017 11:04:55 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Building a utility function wrapper for Scikit-Learn models</title><link>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+<?xml-stylesheet type="text/xsl" href="assets/xml/rss.xsl" media="all"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Data Everythingist</title><link>http://blairhudson.github.io/blog/</link><description>The personal blog of Blair Hudson, The Data Everythingist</description><atom:link rel="self" type="application/rss+xml" href="http://blairhudson.github.io/blog/rss.xml"></atom:link><language>en</language><copyright>Contents © 2017 &lt;a href="http://blairhudson.com"&gt;Blair Hudson&lt;/a&gt; </copyright><lastBuildDate>Wed, 27 Sep 2017 13:02:00 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>Automating error analysis with RuleFit models</title><link>http://blairhudson.github.io/blog/posts/automating-error-analysis-with-rulefit-models/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+    &lt;div class="container" id="notebook-container"&gt;
+
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;When building machine learning models, the goal is generally to improve the performance of a model based on some performance metric. One of the most simple metrics is &lt;em&gt;error&lt;/em&gt;. Error is simply the inverse of model accuracy - so if a model had 95% accuracy, this would correspond with 5% error.&lt;/p&gt;
+&lt;p&gt;There are many ways to improve the performance of a model and subsequently decrease the model error. This includes adding more training observations (rows), enriching training obversations with more features (columns), modifying the model algorithm or &lt;a href="http://blairhudson.github.io/blog/posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/"&gt;optimising the algorithm parameters&lt;/a&gt;.&lt;/p&gt;
+&lt;h3 id="Reducing-error-by-introducing-new-features"&gt;Reducing error by introducing new features&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/automating-error-analysis-with-rulefit-models/#Reducing-error-by-introducing-new-features"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;In the post linked above we looked at how to optimise the parameters of a given algorithm, so for now we're interested in what we can do with the data itself.&lt;/p&gt;
+&lt;p&gt;While there are many ways to create more training observations, this is often infeasible due to consideration of cost (imagine the cost of high-end medical studies) and time (such as waiting for enough events to occur).&lt;/p&gt;
+&lt;p&gt;The next option we have is to introduce new features to the observations already in our model. There is often lots of different approaches here too, including:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;engineering new features based on existing features&lt;/li&gt;
+&lt;li&gt;creating new features from available data not already used&lt;/li&gt;
+&lt;li&gt;making more data available (such as from external providers)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The goal of this post is to explore a method not for assessing which approach to take, but for identifying where the gaps are to help you assess all of the options available to you.&lt;/p&gt;
+&lt;h3 id="Modelling-error-analysis"&gt;Modelling error analysis&lt;a class="anchor-link" href="http://blairhudson.github.io/blog/posts/automating-error-analysis-with-rulefit-models/#Modelling-error-analysis"&gt;¶&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;To get started, let's install an implementation of RuleFit from GitHub using pip:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;pip install git+https://github.com/christophM/rulefit&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Now we're going to load up a sample data set to work on, partitioning it into data for training our initial model, and data for testing its performance. Note that feature names will be important for this exercise.&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [1]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.datasets&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.model_selection&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;
+
+&lt;span class="c1"&gt;# load our data - we also care about feature names&lt;/span&gt;
+&lt;span class="n"&gt;data&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;feature_names&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;list&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;map&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;lambda&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;replace&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;' '&lt;/span&gt; &lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'_'&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;feature_names&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;target&lt;/span&gt;
+
+&lt;span class="c1"&gt;# split data for training and testing&lt;/span&gt;
+&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;train_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.75&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;test_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.25&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="c1"&gt;# more reproducibility&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;With our data ready, let's build a quick logistic regression model on the training data. We're also going to generate predictions for our test data (as positive probabilities, or the likelihood of the class label being True).&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [2]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.linear_model&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;numpy&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="nn"&gt;np&lt;/span&gt;
+
+&lt;span class="c1"&gt;# define our model&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# fit our model&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# generate some predictions&lt;/span&gt;
+&lt;span class="n"&gt;y_hat&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict_proba&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;)[:,&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;At the start of this post we discussed model error, so let's now calculate this for our model to see how much room for improvement there is.&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [3]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# calculate error on each obversation in the test set&lt;/span&gt;
+&lt;span class="n"&gt;y_error&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;np&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;absolute&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;y_test&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="n"&gt;y_hat&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# is there much room for improvement?&lt;/span&gt;
+&lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'model error:'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_error&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mean&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;model error: 0.0705335674785
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;It looks like there is almost 7% &lt;em&gt;mean absolute error&lt;/em&gt;. Maybe we can find some good leads for improving on this?&lt;/p&gt;
+&lt;p&gt;To do so, we're going to create a new model using the &lt;code&gt;RuleFit&lt;/code&gt; class, but instead of targetting the original class label &lt;em&gt;y&lt;/em&gt;, we're going to calculate the &lt;em&gt;absolute error&lt;/em&gt; of each observation.&lt;/p&gt;
+&lt;p&gt;The absolute error is the difference between the discrete actual value of &lt;em&gt;y&lt;/em&gt; (0 or 1) and the continuous positive probability we predicted (0.0 to 1.0).&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [4]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;rulefit&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;RuleFit&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.ensemble&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;GradientBoostingRegressor&lt;/span&gt;
+
+&lt;span class="c1"&gt;# define and fit our shiny new RuleFit model&lt;/span&gt;
+&lt;span class="n"&gt;generator_params&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="s1"&gt;'max_depth'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;       &lt;span class="c1"&gt;# control the complexity of our rules&lt;/span&gt;
+    &lt;span class="s1"&gt;'n_estimators'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1000&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;  
+    &lt;span class="s1"&gt;'learning_rate'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mf"&gt;0.003&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s1"&gt;'random_state'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1234&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="n"&gt;generator&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;GradientBoostingRegressor&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;generator_params&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;rf&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;RuleFit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;generator&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;rf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_error&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;feature_names&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;feature_names&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt output_prompt"&gt;Out[4]:&lt;/div&gt;
+
+
+
+&lt;div class="output_text output_subarea output_execute_result"&gt;
+&lt;pre&gt;RuleFit(tree_generator=GradientBoostingRegressor(alpha=0.9, criterion='friedman_mse', init=None,
+             learning_rate=0.003, loss='ls', max_depth=5,
+             max_features=None, max_leaf_nodes=None,
+             min_impurity_decrease=0.0, min_impurity_split=None,
+             min_samples_leaf=1, min_samples_split=2,
+             min_weight_fraction_leaf=0.0, n_estimators=1000,
+             presort='auto', random_state=1234, subsample=1.0, verbose=0,
+             warm_start=False))&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;With the &lt;code&gt;RuleFit&lt;/code&gt; model fitted to our errors, we can generate a set of rules that might help us to isolate areas of our data that need enriching with new features.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;RuleFit&lt;/code&gt; actually generates rules for the data having a positive impact on the model, but we can ignore these for error analysis for filtering &lt;code&gt;coef&lt;/code&gt; &amp;gt; 0.&lt;/p&gt;
+&lt;p&gt;If we multiply the coefficient and support values calculated by &lt;code&gt;RuleFit&lt;/code&gt;, we can use that as a rough estimate for how much error is due to that subset of the data.&lt;/p&gt;
+&lt;p&gt;By summing these estimates, we get an approximate amount of error explained by these rules. This will differ from the above simply because our rules may not perfect fit our errors (that is, our error model has its own error).&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [5]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;pandas&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="nn"&gt;pd&lt;/span&gt;
+
+&lt;span class="c1"&gt;# get the outputs&lt;/span&gt;
+&lt;span class="n"&gt;rules&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_rules&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+&lt;span class="c1"&gt;# remove the rules we're not interested in. if the coefficient isn't above 0&lt;/span&gt;
+&lt;span class="c1"&gt;# there rule is not a good indicator of an area for improvement&lt;/span&gt;
+&lt;span class="n"&gt;rules&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rules&lt;/span&gt;&lt;span class="p"&gt;[(&lt;/span&gt;&lt;span class="n"&gt;rules&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;coef&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="mf"&gt;0.&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;rules&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;type&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="s1"&gt;'linear'&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;
+
+&lt;span class="c1"&gt;# we can estimate an effect for each rule on the error score from above by &lt;/span&gt;
+&lt;span class="c1"&gt;# multiplying the coefficient and support values&lt;/span&gt;
+&lt;span class="n"&gt;rules&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'effect'&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rules&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'coef'&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;rules&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'support'&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+
+&lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'modelled error:'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rules&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'effect'&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt;
+&lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'unexplained error:'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;np&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;max&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;y_error&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mean&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="n"&gt;rules&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'effect'&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;modelled error: 0.046811390404179753
+unexplained error: 0.0237221770743
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Let's take a look at the top 10 rules:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [6]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# display the top 10 rules by effect&lt;/span&gt;
+&lt;span class="n"&gt;pd&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;set_option&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'display.max_colwidth'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;rules&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;nlargest&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="s1"&gt;'effect'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt output_prompt"&gt;Out[6]:&lt;/div&gt;
+
+
+&lt;div class="output_html rendered_html output_subarea output_execute_result"&gt;
+&lt;div&gt;
+&lt;style&gt;
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+&lt;/style&gt;
+&lt;table border="1" class="dataframe"&gt;
+  &lt;thead&gt;
+    &lt;tr style="text-align: right;"&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;rule&lt;/th&gt;
+      &lt;th&gt;type&lt;/th&gt;
+      &lt;th&gt;coef&lt;/th&gt;
+      &lt;th&gt;support&lt;/th&gt;
+      &lt;th&gt;effect&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;883&lt;/th&gt;
+      &lt;td&gt;worst_area &amp;lt;= 976.25 &amp;amp; worst_area &amp;gt; 553.299987793 &amp;amp; radius_error &amp;gt; 0.275350004435&lt;/td&gt;
+      &lt;td&gt;rule&lt;/td&gt;
+      &lt;td&gt;0.056166&lt;/td&gt;
+      &lt;td&gt;0.216783&lt;/td&gt;
+      &lt;td&gt;0.012176&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;1176&lt;/th&gt;
+      &lt;td&gt;compactness_error &amp;gt; 0.0203649997711 &amp;amp; worst_fractal_dimension &amp;lt;= 0.113150000572 &amp;amp; area_error &amp;gt; 23.2399997711 &amp;amp; radius_error &amp;lt;= 0.339100003242&lt;/td&gt;
+      &lt;td&gt;rule&lt;/td&gt;
+      &lt;td&gt;0.265549&lt;/td&gt;
+      &lt;td&gt;0.041958&lt;/td&gt;
+      &lt;td&gt;0.011142&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;769&lt;/th&gt;
+      &lt;td&gt;worst_area &amp;gt; 548.650024414 &amp;amp; area_error &amp;gt; 23.2350006104 &amp;amp; worst_area &amp;lt;= 976.25&lt;/td&gt;
+      &lt;td&gt;rule&lt;/td&gt;
+      &lt;td&gt;0.028937&lt;/td&gt;
+      &lt;td&gt;0.223776&lt;/td&gt;
+      &lt;td&gt;0.006475&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;458&lt;/th&gt;
+      &lt;td&gt;worst_radius &amp;gt; 15.345000267 &amp;amp; worst_concavity &amp;gt; 0.207249999046 &amp;amp; worst_symmetry &amp;gt; 0.203749999404 &amp;amp; worst_symmetry &amp;lt;= 0.560700058937 &amp;amp; worst_radius &amp;lt;= 16.8100013733&lt;/td&gt;
+      &lt;td&gt;rule&lt;/td&gt;
+      &lt;td&gt;0.101535&lt;/td&gt;
+      &lt;td&gt;0.041958&lt;/td&gt;
+      &lt;td&gt;0.004260&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;1548&lt;/th&gt;
+      &lt;td&gt;worst_symmetry &amp;gt; 0.203749999404 &amp;amp; area_error &amp;lt;= 33.375 &amp;amp; worst_symmetry &amp;lt;= 0.560700058937 &amp;amp; worst_perimeter &amp;gt; 100.555000305&lt;/td&gt;
+      &lt;td&gt;rule&lt;/td&gt;
+      &lt;td&gt;0.024403&lt;/td&gt;
+      &lt;td&gt;0.153846&lt;/td&gt;
+      &lt;td&gt;0.003754&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;5361&lt;/th&gt;
+      &lt;td&gt;radius_error &amp;gt; 0.344399988651 &amp;amp; symmetry_error &amp;lt;= 0.017725000158 &amp;amp; area_error &amp;gt; 23.2399997711 &amp;amp; worst_perimeter &amp;lt;= 105.199996948&lt;/td&gt;
+      &lt;td&gt;rule&lt;/td&gt;
+      &lt;td&gt;0.133092&lt;/td&gt;
+      &lt;td&gt;0.027972&lt;/td&gt;
+      &lt;td&gt;0.003723&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;357&lt;/th&gt;
+      &lt;td&gt;worst_radius &amp;gt; 15.5699996948 &amp;amp; worst_symmetry &amp;gt; 0.203749999404 &amp;amp; mean_texture &amp;gt; 19.1049995422 &amp;amp; worst_symmetry &amp;lt;= 0.560700058937 &amp;amp; radius_error &amp;lt;= 0.418200016022&lt;/td&gt;
+      &lt;td&gt;rule&lt;/td&gt;
+      &lt;td&gt;0.032694&lt;/td&gt;
+      &lt;td&gt;0.069930&lt;/td&gt;
+      &lt;td&gt;0.002286&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;57&lt;/th&gt;
+      &lt;td&gt;worst_area &amp;gt; 548.650024414 &amp;amp; worst_area &amp;lt;= 1086.0&lt;/td&gt;
+      &lt;td&gt;rule&lt;/td&gt;
+      &lt;td&gt;0.002326&lt;/td&gt;
+      &lt;td&gt;0.405594&lt;/td&gt;
+      &lt;td&gt;0.000943&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;1433&lt;/th&gt;
+      &lt;td&gt;worst_area &amp;gt; 548.650024414 &amp;amp; mean_perimeter &amp;gt; 79.2050018311 &amp;amp; mean_texture &amp;gt; 21.1399993896 &amp;amp; area_error &amp;lt;= 36.4049987793&lt;/td&gt;
+      &lt;td&gt;rule&lt;/td&gt;
+      &lt;td&gt;0.012087&lt;/td&gt;
+      &lt;td&gt;0.069930&lt;/td&gt;
+      &lt;td&gt;0.000845&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;5547&lt;/th&gt;
+      &lt;td&gt;worst_area &amp;gt; 744.0 &amp;amp; worst_symmetry &amp;gt; 0.203749999404 &amp;amp; mean_texture &amp;gt; 19.1049995422 &amp;amp; worst_symmetry &amp;lt;= 0.560700058937 &amp;amp; radius_error &amp;lt;= 0.418200016022&lt;/td&gt;
+      &lt;td&gt;rule&lt;/td&gt;
+      &lt;td&gt;0.004637&lt;/td&gt;
+      &lt;td&gt;0.069930&lt;/td&gt;
+      &lt;td&gt;0.000324&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;To wrap up, let's produce a report of the top 3 rules, including up to 10 examples from the data to which the rules apply.&lt;/p&gt;
+&lt;p&gt;This report can be used in conjunction with subject-matter experitise on the data to isolate areas for feature enrichment, to improve your model!&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [7]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;IPython.core.display&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;display&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;pandas&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="nn"&gt;pd&lt;/span&gt;
+
+&lt;span class="c1"&gt;# prepare a dataframe for use below (we really care about the `query` function)&lt;/span&gt;
+&lt;span class="n"&gt;df&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;pd&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;DataFrame&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;columns&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;data&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;feature_names&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;df&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'y_error'&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;y_error&lt;/span&gt;
+&lt;span class="n"&gt;df&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'y_sq_error'&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;y_error&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;
+
+&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;index&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rule&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;rules&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;nlargest&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'effect'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;iterrows&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+    &lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'rule:'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rule&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'rule'&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+    &lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'support:'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rule&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'support'&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+    &lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'coef:'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rule&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'coef'&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+    &lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'estimated error effect (support x coef):'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rule&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'effect'&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+    
+    &lt;span class="c1"&gt;# it might be useful to compare the local error to the estimated model effect&lt;/span&gt;
+    &lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'rule MAE:'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;df&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;query&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;rule&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'rule'&lt;/span&gt;&lt;span class="p"&gt;])[&lt;/span&gt;&lt;span class="s1"&gt;'y_error'&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mean&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt;
+    &lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;'rule RMSE:'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;df&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;query&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;rule&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'rule'&lt;/span&gt;&lt;span class="p"&gt;])[&lt;/span&gt;&lt;span class="s1"&gt;'y_sq_error'&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;mean&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+    
+    &lt;span class="c1"&gt;# we can use the rule to filter the data&lt;/span&gt;
+    &lt;span class="n"&gt;display&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;df&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;query&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;rule&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s1"&gt;'rule'&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;nlargest&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s1"&gt;'y_error'&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;rule: worst_area &amp;lt;= 976.25 &amp;amp; worst_area &amp;gt; 553.299987793 &amp;amp; radius_error &amp;gt; 0.275350004435
+support: 0.21678321678321677
+coef: 0.05616597023836435
+estimated error effect (support x coef): 0.012175839702023041
+rule MAE: 0.2658110370900938
+rule RMSE: 0.4155759177730745
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+
+&lt;div class="output_html rendered_html output_subarea "&gt;
+&lt;div&gt;
+&lt;style&gt;
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+&lt;/style&gt;
+&lt;table border="1" class="dataframe"&gt;
+  &lt;thead&gt;
+    &lt;tr style="text-align: right;"&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;mean_radius&lt;/th&gt;
+      &lt;th&gt;mean_texture&lt;/th&gt;
+      &lt;th&gt;mean_perimeter&lt;/th&gt;
+      &lt;th&gt;mean_area&lt;/th&gt;
+      &lt;th&gt;mean_smoothness&lt;/th&gt;
+      &lt;th&gt;mean_compactness&lt;/th&gt;
+      &lt;th&gt;mean_concavity&lt;/th&gt;
+      &lt;th&gt;mean_concave_points&lt;/th&gt;
+      &lt;th&gt;mean_symmetry&lt;/th&gt;
+      &lt;th&gt;mean_fractal_dimension&lt;/th&gt;
+      &lt;th&gt;...&lt;/th&gt;
+      &lt;th&gt;worst_perimeter&lt;/th&gt;
+      &lt;th&gt;worst_area&lt;/th&gt;
+      &lt;th&gt;worst_smoothness&lt;/th&gt;
+      &lt;th&gt;worst_compactness&lt;/th&gt;
+      &lt;th&gt;worst_concavity&lt;/th&gt;
+      &lt;th&gt;worst_concave_points&lt;/th&gt;
+      &lt;th&gt;worst_symmetry&lt;/th&gt;
+      &lt;th&gt;worst_fractal_dimension&lt;/th&gt;
+      &lt;th&gt;y_error&lt;/th&gt;
+      &lt;th&gt;y_sq_error&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;91&lt;/th&gt;
+      &lt;td&gt;11.76&lt;/td&gt;
+      &lt;td&gt;18.14&lt;/td&gt;
+      &lt;td&gt;75.00&lt;/td&gt;
+      &lt;td&gt;431.1&lt;/td&gt;
+      &lt;td&gt;0.09968&lt;/td&gt;
+      &lt;td&gt;0.05914&lt;/td&gt;
+      &lt;td&gt;0.02685&lt;/td&gt;
+      &lt;td&gt;0.03515&lt;/td&gt;
+      &lt;td&gt;0.1619&lt;/td&gt;
+      &lt;td&gt;0.06287&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;85.10&lt;/td&gt;
+      &lt;td&gt;553.6&lt;/td&gt;
+      &lt;td&gt;0.1137&lt;/td&gt;
+      &lt;td&gt;0.07974&lt;/td&gt;
+      &lt;td&gt;0.0612&lt;/td&gt;
+      &lt;td&gt;0.07160&lt;/td&gt;
+      &lt;td&gt;0.1978&lt;/td&gt;
+      &lt;td&gt;0.06915&lt;/td&gt;
+      &lt;td&gt;0.974325&lt;/td&gt;
+      &lt;td&gt;0.949308&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;83&lt;/th&gt;
+      &lt;td&gt;15.37&lt;/td&gt;
+      &lt;td&gt;22.76&lt;/td&gt;
+      &lt;td&gt;100.20&lt;/td&gt;
+      &lt;td&gt;728.2&lt;/td&gt;
+      &lt;td&gt;0.09200&lt;/td&gt;
+      &lt;td&gt;0.10360&lt;/td&gt;
+      &lt;td&gt;0.11220&lt;/td&gt;
+      &lt;td&gt;0.07483&lt;/td&gt;
+      &lt;td&gt;0.1717&lt;/td&gt;
+      &lt;td&gt;0.06097&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;107.50&lt;/td&gt;
+      &lt;td&gt;830.9&lt;/td&gt;
+      &lt;td&gt;0.1257&lt;/td&gt;
+      &lt;td&gt;0.19970&lt;/td&gt;
+      &lt;td&gt;0.2846&lt;/td&gt;
+      &lt;td&gt;0.14760&lt;/td&gt;
+      &lt;td&gt;0.2556&lt;/td&gt;
+      &lt;td&gt;0.06828&lt;/td&gt;
+      &lt;td&gt;0.929329&lt;/td&gt;
+      &lt;td&gt;0.863652&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;89&lt;/th&gt;
+      &lt;td&gt;14.60&lt;/td&gt;
+      &lt;td&gt;23.29&lt;/td&gt;
+      &lt;td&gt;93.97&lt;/td&gt;
+      &lt;td&gt;664.7&lt;/td&gt;
+      &lt;td&gt;0.08682&lt;/td&gt;
+      &lt;td&gt;0.06636&lt;/td&gt;
+      &lt;td&gt;0.08390&lt;/td&gt;
+      &lt;td&gt;0.05271&lt;/td&gt;
+      &lt;td&gt;0.1627&lt;/td&gt;
+      &lt;td&gt;0.05416&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;102.20&lt;/td&gt;
+      &lt;td&gt;758.2&lt;/td&gt;
+      &lt;td&gt;0.1312&lt;/td&gt;
+      &lt;td&gt;0.15810&lt;/td&gt;
+      &lt;td&gt;0.2675&lt;/td&gt;
+      &lt;td&gt;0.13590&lt;/td&gt;
+      &lt;td&gt;0.2477&lt;/td&gt;
+      &lt;td&gt;0.06836&lt;/td&gt;
+      &lt;td&gt;0.856296&lt;/td&gt;
+      &lt;td&gt;0.733242&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;47&lt;/th&gt;
+      &lt;td&gt;13.80&lt;/td&gt;
+      &lt;td&gt;15.79&lt;/td&gt;
+      &lt;td&gt;90.43&lt;/td&gt;
+      &lt;td&gt;584.1&lt;/td&gt;
+      &lt;td&gt;0.10070&lt;/td&gt;
+      &lt;td&gt;0.12800&lt;/td&gt;
+      &lt;td&gt;0.07789&lt;/td&gt;
+      &lt;td&gt;0.05069&lt;/td&gt;
+      &lt;td&gt;0.1662&lt;/td&gt;
+      &lt;td&gt;0.06566&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;110.30&lt;/td&gt;
+      &lt;td&gt;812.4&lt;/td&gt;
+      &lt;td&gt;0.1411&lt;/td&gt;
+      &lt;td&gt;0.35420&lt;/td&gt;
+      &lt;td&gt;0.2779&lt;/td&gt;
+      &lt;td&gt;0.13830&lt;/td&gt;
+      &lt;td&gt;0.2589&lt;/td&gt;
+      &lt;td&gt;0.10300&lt;/td&gt;
+      &lt;td&gt;0.832785&lt;/td&gt;
+      &lt;td&gt;0.693531&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;137&lt;/th&gt;
+      &lt;td&gt;14.22&lt;/td&gt;
+      &lt;td&gt;27.85&lt;/td&gt;
+      &lt;td&gt;92.55&lt;/td&gt;
+      &lt;td&gt;623.9&lt;/td&gt;
+      &lt;td&gt;0.08223&lt;/td&gt;
+      &lt;td&gt;0.10390&lt;/td&gt;
+      &lt;td&gt;0.11030&lt;/td&gt;
+      &lt;td&gt;0.04408&lt;/td&gt;
+      &lt;td&gt;0.1342&lt;/td&gt;
+      &lt;td&gt;0.06129&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;102.50&lt;/td&gt;
+      &lt;td&gt;764.0&lt;/td&gt;
+      &lt;td&gt;0.1081&lt;/td&gt;
+      &lt;td&gt;0.24260&lt;/td&gt;
+      &lt;td&gt;0.3064&lt;/td&gt;
+      &lt;td&gt;0.08219&lt;/td&gt;
+      &lt;td&gt;0.1890&lt;/td&gt;
+      &lt;td&gt;0.07796&lt;/td&gt;
+      &lt;td&gt;0.707592&lt;/td&gt;
+      &lt;td&gt;0.500686&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;73&lt;/th&gt;
+      &lt;td&gt;11.80&lt;/td&gt;
+      &lt;td&gt;16.58&lt;/td&gt;
+      &lt;td&gt;78.99&lt;/td&gt;
+      &lt;td&gt;432.0&lt;/td&gt;
+      &lt;td&gt;0.10910&lt;/td&gt;
+      &lt;td&gt;0.17000&lt;/td&gt;
+      &lt;td&gt;0.16590&lt;/td&gt;
+      &lt;td&gt;0.07415&lt;/td&gt;
+      &lt;td&gt;0.2678&lt;/td&gt;
+      &lt;td&gt;0.07371&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;91.93&lt;/td&gt;
+      &lt;td&gt;591.7&lt;/td&gt;
+      &lt;td&gt;0.1385&lt;/td&gt;
+      &lt;td&gt;0.40920&lt;/td&gt;
+      &lt;td&gt;0.4504&lt;/td&gt;
+      &lt;td&gt;0.18650&lt;/td&gt;
+      &lt;td&gt;0.5774&lt;/td&gt;
+      &lt;td&gt;0.10300&lt;/td&gt;
+      &lt;td&gt;0.703641&lt;/td&gt;
+      &lt;td&gt;0.495111&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;130&lt;/th&gt;
+      &lt;td&gt;14.99&lt;/td&gt;
+      &lt;td&gt;22.11&lt;/td&gt;
+      &lt;td&gt;97.53&lt;/td&gt;
+      &lt;td&gt;693.7&lt;/td&gt;
+      &lt;td&gt;0.08515&lt;/td&gt;
+      &lt;td&gt;0.10250&lt;/td&gt;
+      &lt;td&gt;0.06859&lt;/td&gt;
+      &lt;td&gt;0.03876&lt;/td&gt;
+      &lt;td&gt;0.1944&lt;/td&gt;
+      &lt;td&gt;0.05913&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;110.20&lt;/td&gt;
+      &lt;td&gt;867.1&lt;/td&gt;
+      &lt;td&gt;0.1077&lt;/td&gt;
+      &lt;td&gt;0.33450&lt;/td&gt;
+      &lt;td&gt;0.3114&lt;/td&gt;
+      &lt;td&gt;0.13080&lt;/td&gt;
+      &lt;td&gt;0.3163&lt;/td&gt;
+      &lt;td&gt;0.09251&lt;/td&gt;
+      &lt;td&gt;0.646361&lt;/td&gt;
+      &lt;td&gt;0.417782&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;111&lt;/th&gt;
+      &lt;td&gt;13.27&lt;/td&gt;
+      &lt;td&gt;14.76&lt;/td&gt;
+      &lt;td&gt;84.74&lt;/td&gt;
+      &lt;td&gt;551.7&lt;/td&gt;
+      &lt;td&gt;0.07355&lt;/td&gt;
+      &lt;td&gt;0.05055&lt;/td&gt;
+      &lt;td&gt;0.03261&lt;/td&gt;
+      &lt;td&gt;0.02648&lt;/td&gt;
+      &lt;td&gt;0.1386&lt;/td&gt;
+      &lt;td&gt;0.05318&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;104.50&lt;/td&gt;
+      &lt;td&gt;830.6&lt;/td&gt;
+      &lt;td&gt;0.1006&lt;/td&gt;
+      &lt;td&gt;0.12380&lt;/td&gt;
+      &lt;td&gt;0.1350&lt;/td&gt;
+      &lt;td&gt;0.10010&lt;/td&gt;
+      &lt;td&gt;0.2027&lt;/td&gt;
+      &lt;td&gt;0.06206&lt;/td&gt;
+      &lt;td&gt;0.471311&lt;/td&gt;
+      &lt;td&gt;0.222134&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;119&lt;/th&gt;
+      &lt;td&gt;16.25&lt;/td&gt;
+      &lt;td&gt;19.51&lt;/td&gt;
+      &lt;td&gt;109.80&lt;/td&gt;
+      &lt;td&gt;815.8&lt;/td&gt;
+      &lt;td&gt;0.10260&lt;/td&gt;
+      &lt;td&gt;0.18930&lt;/td&gt;
+      &lt;td&gt;0.22360&lt;/td&gt;
+      &lt;td&gt;0.09194&lt;/td&gt;
+      &lt;td&gt;0.2151&lt;/td&gt;
+      &lt;td&gt;0.06578&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;122.10&lt;/td&gt;
+      &lt;td&gt;939.7&lt;/td&gt;
+      &lt;td&gt;0.1377&lt;/td&gt;
+      &lt;td&gt;0.44620&lt;/td&gt;
+      &lt;td&gt;0.5897&lt;/td&gt;
+      &lt;td&gt;0.17750&lt;/td&gt;
+      &lt;td&gt;0.3318&lt;/td&gt;
+      &lt;td&gt;0.09136&lt;/td&gt;
+      &lt;td&gt;0.467160&lt;/td&gt;
+      &lt;td&gt;0.218238&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;25&lt;/th&gt;
+      &lt;td&gt;13.90&lt;/td&gt;
+      &lt;td&gt;19.24&lt;/td&gt;
+      &lt;td&gt;88.73&lt;/td&gt;
+      &lt;td&gt;602.9&lt;/td&gt;
+      &lt;td&gt;0.07991&lt;/td&gt;
+      &lt;td&gt;0.05326&lt;/td&gt;
+      &lt;td&gt;0.02995&lt;/td&gt;
+      &lt;td&gt;0.02070&lt;/td&gt;
+      &lt;td&gt;0.1579&lt;/td&gt;
+      &lt;td&gt;0.05594&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;104.40&lt;/td&gt;
+      &lt;td&gt;830.5&lt;/td&gt;
+      &lt;td&gt;0.1064&lt;/td&gt;
+      &lt;td&gt;0.14150&lt;/td&gt;
+      &lt;td&gt;0.1673&lt;/td&gt;
+      &lt;td&gt;0.08150&lt;/td&gt;
+      &lt;td&gt;0.2356&lt;/td&gt;
+      &lt;td&gt;0.07603&lt;/td&gt;
+      &lt;td&gt;0.344350&lt;/td&gt;
+      &lt;td&gt;0.118577&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;10 rows × 32 columns&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;rule: compactness_error &amp;gt; 0.0203649997711 &amp;amp; worst_fractal_dimension &amp;lt;= 0.113150000572 &amp;amp; area_error &amp;gt; 23.2399997711 &amp;amp; radius_error &amp;lt;= 0.339100003242
+support: 0.04195804195804196
+coef: 0.26554881554597404
+estimated error effect (support x coef): 0.011141908344586324
+rule MAE: 0.7144778689742627
+rule RMSE: 0.7290404836131931
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+
+&lt;div class="output_html rendered_html output_subarea "&gt;
+&lt;div&gt;
+&lt;style&gt;
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+&lt;/style&gt;
+&lt;table border="1" class="dataframe"&gt;
+  &lt;thead&gt;
+    &lt;tr style="text-align: right;"&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;mean_radius&lt;/th&gt;
+      &lt;th&gt;mean_texture&lt;/th&gt;
+      &lt;th&gt;mean_perimeter&lt;/th&gt;
+      &lt;th&gt;mean_area&lt;/th&gt;
+      &lt;th&gt;mean_smoothness&lt;/th&gt;
+      &lt;th&gt;mean_compactness&lt;/th&gt;
+      &lt;th&gt;mean_concavity&lt;/th&gt;
+      &lt;th&gt;mean_concave_points&lt;/th&gt;
+      &lt;th&gt;mean_symmetry&lt;/th&gt;
+      &lt;th&gt;mean_fractal_dimension&lt;/th&gt;
+      &lt;th&gt;...&lt;/th&gt;
+      &lt;th&gt;worst_perimeter&lt;/th&gt;
+      &lt;th&gt;worst_area&lt;/th&gt;
+      &lt;th&gt;worst_smoothness&lt;/th&gt;
+      &lt;th&gt;worst_compactness&lt;/th&gt;
+      &lt;th&gt;worst_concavity&lt;/th&gt;
+      &lt;th&gt;worst_concave_points&lt;/th&gt;
+      &lt;th&gt;worst_symmetry&lt;/th&gt;
+      &lt;th&gt;worst_fractal_dimension&lt;/th&gt;
+      &lt;th&gt;y_error&lt;/th&gt;
+      &lt;th&gt;y_sq_error&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;83&lt;/th&gt;
+      &lt;td&gt;15.37&lt;/td&gt;
+      &lt;td&gt;22.76&lt;/td&gt;
+      &lt;td&gt;100.20&lt;/td&gt;
+      &lt;td&gt;728.2&lt;/td&gt;
+      &lt;td&gt;0.09200&lt;/td&gt;
+      &lt;td&gt;0.1036&lt;/td&gt;
+      &lt;td&gt;0.11220&lt;/td&gt;
+      &lt;td&gt;0.07483&lt;/td&gt;
+      &lt;td&gt;0.1717&lt;/td&gt;
+      &lt;td&gt;0.06097&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;107.50&lt;/td&gt;
+      &lt;td&gt;830.9&lt;/td&gt;
+      &lt;td&gt;0.1257&lt;/td&gt;
+      &lt;td&gt;0.1997&lt;/td&gt;
+      &lt;td&gt;0.2846&lt;/td&gt;
+      &lt;td&gt;0.14760&lt;/td&gt;
+      &lt;td&gt;0.2556&lt;/td&gt;
+      &lt;td&gt;0.06828&lt;/td&gt;
+      &lt;td&gt;0.929329&lt;/td&gt;
+      &lt;td&gt;0.863652&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;47&lt;/th&gt;
+      &lt;td&gt;13.80&lt;/td&gt;
+      &lt;td&gt;15.79&lt;/td&gt;
+      &lt;td&gt;90.43&lt;/td&gt;
+      &lt;td&gt;584.1&lt;/td&gt;
+      &lt;td&gt;0.10070&lt;/td&gt;
+      &lt;td&gt;0.1280&lt;/td&gt;
+      &lt;td&gt;0.07789&lt;/td&gt;
+      &lt;td&gt;0.05069&lt;/td&gt;
+      &lt;td&gt;0.1662&lt;/td&gt;
+      &lt;td&gt;0.06566&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;110.30&lt;/td&gt;
+      &lt;td&gt;812.4&lt;/td&gt;
+      &lt;td&gt;0.1411&lt;/td&gt;
+      &lt;td&gt;0.3542&lt;/td&gt;
+      &lt;td&gt;0.2779&lt;/td&gt;
+      &lt;td&gt;0.13830&lt;/td&gt;
+      &lt;td&gt;0.2589&lt;/td&gt;
+      &lt;td&gt;0.10300&lt;/td&gt;
+      &lt;td&gt;0.832785&lt;/td&gt;
+      &lt;td&gt;0.693531&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;137&lt;/th&gt;
+      &lt;td&gt;14.22&lt;/td&gt;
+      &lt;td&gt;27.85&lt;/td&gt;
+      &lt;td&gt;92.55&lt;/td&gt;
+      &lt;td&gt;623.9&lt;/td&gt;
+      &lt;td&gt;0.08223&lt;/td&gt;
+      &lt;td&gt;0.1039&lt;/td&gt;
+      &lt;td&gt;0.11030&lt;/td&gt;
+      &lt;td&gt;0.04408&lt;/td&gt;
+      &lt;td&gt;0.1342&lt;/td&gt;
+      &lt;td&gt;0.06129&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;102.50&lt;/td&gt;
+      &lt;td&gt;764.0&lt;/td&gt;
+      &lt;td&gt;0.1081&lt;/td&gt;
+      &lt;td&gt;0.2426&lt;/td&gt;
+      &lt;td&gt;0.3064&lt;/td&gt;
+      &lt;td&gt;0.08219&lt;/td&gt;
+      &lt;td&gt;0.1890&lt;/td&gt;
+      &lt;td&gt;0.07796&lt;/td&gt;
+      &lt;td&gt;0.707592&lt;/td&gt;
+      &lt;td&gt;0.500686&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;73&lt;/th&gt;
+      &lt;td&gt;11.80&lt;/td&gt;
+      &lt;td&gt;16.58&lt;/td&gt;
+      &lt;td&gt;78.99&lt;/td&gt;
+      &lt;td&gt;432.0&lt;/td&gt;
+      &lt;td&gt;0.10910&lt;/td&gt;
+      &lt;td&gt;0.1700&lt;/td&gt;
+      &lt;td&gt;0.16590&lt;/td&gt;
+      &lt;td&gt;0.07415&lt;/td&gt;
+      &lt;td&gt;0.2678&lt;/td&gt;
+      &lt;td&gt;0.07371&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;91.93&lt;/td&gt;
+      &lt;td&gt;591.7&lt;/td&gt;
+      &lt;td&gt;0.1385&lt;/td&gt;
+      &lt;td&gt;0.4092&lt;/td&gt;
+      &lt;td&gt;0.4504&lt;/td&gt;
+      &lt;td&gt;0.18650&lt;/td&gt;
+      &lt;td&gt;0.5774&lt;/td&gt;
+      &lt;td&gt;0.10300&lt;/td&gt;
+      &lt;td&gt;0.703641&lt;/td&gt;
+      &lt;td&gt;0.495111&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;130&lt;/th&gt;
+      &lt;td&gt;14.99&lt;/td&gt;
+      &lt;td&gt;22.11&lt;/td&gt;
+      &lt;td&gt;97.53&lt;/td&gt;
+      &lt;td&gt;693.7&lt;/td&gt;
+      &lt;td&gt;0.08515&lt;/td&gt;
+      &lt;td&gt;0.1025&lt;/td&gt;
+      &lt;td&gt;0.06859&lt;/td&gt;
+      &lt;td&gt;0.03876&lt;/td&gt;
+      &lt;td&gt;0.1944&lt;/td&gt;
+      &lt;td&gt;0.05913&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;110.20&lt;/td&gt;
+      &lt;td&gt;867.1&lt;/td&gt;
+      &lt;td&gt;0.1077&lt;/td&gt;
+      &lt;td&gt;0.3345&lt;/td&gt;
+      &lt;td&gt;0.3114&lt;/td&gt;
+      &lt;td&gt;0.13080&lt;/td&gt;
+      &lt;td&gt;0.3163&lt;/td&gt;
+      &lt;td&gt;0.09251&lt;/td&gt;
+      &lt;td&gt;0.646361&lt;/td&gt;
+      &lt;td&gt;0.417782&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;119&lt;/th&gt;
+      &lt;td&gt;16.25&lt;/td&gt;
+      &lt;td&gt;19.51&lt;/td&gt;
+      &lt;td&gt;109.80&lt;/td&gt;
+      &lt;td&gt;815.8&lt;/td&gt;
+      &lt;td&gt;0.10260&lt;/td&gt;
+      &lt;td&gt;0.1893&lt;/td&gt;
+      &lt;td&gt;0.22360&lt;/td&gt;
+      &lt;td&gt;0.09194&lt;/td&gt;
+      &lt;td&gt;0.2151&lt;/td&gt;
+      &lt;td&gt;0.06578&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;122.10&lt;/td&gt;
+      &lt;td&gt;939.7&lt;/td&gt;
+      &lt;td&gt;0.1377&lt;/td&gt;
+      &lt;td&gt;0.4462&lt;/td&gt;
+      &lt;td&gt;0.5897&lt;/td&gt;
+      &lt;td&gt;0.17750&lt;/td&gt;
+      &lt;td&gt;0.3318&lt;/td&gt;
+      &lt;td&gt;0.09136&lt;/td&gt;
+      &lt;td&gt;0.467160&lt;/td&gt;
+      &lt;td&gt;0.218238&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;6 rows × 32 columns&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+&lt;div class="output_subarea output_stream output_stdout output_text"&gt;
+&lt;pre&gt;rule: worst_area &amp;gt; 548.650024414 &amp;amp; area_error &amp;gt; 23.2350006104 &amp;amp; worst_area &amp;lt;= 976.25
+support: 0.22377622377622378
+coef: 0.02893728555291459
+estimated error effect (support x coef): 0.006475476487365502
+rule MAE: 0.2578116453233828
+rule RMSE: 0.40903437023906347
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt"&gt;&lt;/div&gt;
+
+
+&lt;div class="output_html rendered_html output_subarea "&gt;
+&lt;div&gt;
+&lt;style&gt;
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+&lt;/style&gt;
+&lt;table border="1" class="dataframe"&gt;
+  &lt;thead&gt;
+    &lt;tr style="text-align: right;"&gt;
+      &lt;th&gt;&lt;/th&gt;
+      &lt;th&gt;mean_radius&lt;/th&gt;
+      &lt;th&gt;mean_texture&lt;/th&gt;
+      &lt;th&gt;mean_perimeter&lt;/th&gt;
+      &lt;th&gt;mean_area&lt;/th&gt;
+      &lt;th&gt;mean_smoothness&lt;/th&gt;
+      &lt;th&gt;mean_compactness&lt;/th&gt;
+      &lt;th&gt;mean_concavity&lt;/th&gt;
+      &lt;th&gt;mean_concave_points&lt;/th&gt;
+      &lt;th&gt;mean_symmetry&lt;/th&gt;
+      &lt;th&gt;mean_fractal_dimension&lt;/th&gt;
+      &lt;th&gt;...&lt;/th&gt;
+      &lt;th&gt;worst_perimeter&lt;/th&gt;
+      &lt;th&gt;worst_area&lt;/th&gt;
+      &lt;th&gt;worst_smoothness&lt;/th&gt;
+      &lt;th&gt;worst_compactness&lt;/th&gt;
+      &lt;th&gt;worst_concavity&lt;/th&gt;
+      &lt;th&gt;worst_concave_points&lt;/th&gt;
+      &lt;th&gt;worst_symmetry&lt;/th&gt;
+      &lt;th&gt;worst_fractal_dimension&lt;/th&gt;
+      &lt;th&gt;y_error&lt;/th&gt;
+      &lt;th&gt;y_sq_error&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;th&gt;91&lt;/th&gt;
+      &lt;td&gt;11.76&lt;/td&gt;
+      &lt;td&gt;18.14&lt;/td&gt;
+      &lt;td&gt;75.00&lt;/td&gt;
+      &lt;td&gt;431.1&lt;/td&gt;
+      &lt;td&gt;0.09968&lt;/td&gt;
+      &lt;td&gt;0.05914&lt;/td&gt;
+      &lt;td&gt;0.02685&lt;/td&gt;
+      &lt;td&gt;0.03515&lt;/td&gt;
+      &lt;td&gt;0.1619&lt;/td&gt;
+      &lt;td&gt;0.06287&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;85.10&lt;/td&gt;
+      &lt;td&gt;553.6&lt;/td&gt;
+      &lt;td&gt;0.1137&lt;/td&gt;
+      &lt;td&gt;0.07974&lt;/td&gt;
+      &lt;td&gt;0.0612&lt;/td&gt;
+      &lt;td&gt;0.07160&lt;/td&gt;
+      &lt;td&gt;0.1978&lt;/td&gt;
+      &lt;td&gt;0.06915&lt;/td&gt;
+      &lt;td&gt;0.974325&lt;/td&gt;
+      &lt;td&gt;0.949308&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;83&lt;/th&gt;
+      &lt;td&gt;15.37&lt;/td&gt;
+      &lt;td&gt;22.76&lt;/td&gt;
+      &lt;td&gt;100.20&lt;/td&gt;
+      &lt;td&gt;728.2&lt;/td&gt;
+      &lt;td&gt;0.09200&lt;/td&gt;
+      &lt;td&gt;0.10360&lt;/td&gt;
+      &lt;td&gt;0.11220&lt;/td&gt;
+      &lt;td&gt;0.07483&lt;/td&gt;
+      &lt;td&gt;0.1717&lt;/td&gt;
+      &lt;td&gt;0.06097&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;107.50&lt;/td&gt;
+      &lt;td&gt;830.9&lt;/td&gt;
+      &lt;td&gt;0.1257&lt;/td&gt;
+      &lt;td&gt;0.19970&lt;/td&gt;
+      &lt;td&gt;0.2846&lt;/td&gt;
+      &lt;td&gt;0.14760&lt;/td&gt;
+      &lt;td&gt;0.2556&lt;/td&gt;
+      &lt;td&gt;0.06828&lt;/td&gt;
+      &lt;td&gt;0.929329&lt;/td&gt;
+      &lt;td&gt;0.863652&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;89&lt;/th&gt;
+      &lt;td&gt;14.60&lt;/td&gt;
+      &lt;td&gt;23.29&lt;/td&gt;
+      &lt;td&gt;93.97&lt;/td&gt;
+      &lt;td&gt;664.7&lt;/td&gt;
+      &lt;td&gt;0.08682&lt;/td&gt;
+      &lt;td&gt;0.06636&lt;/td&gt;
+      &lt;td&gt;0.08390&lt;/td&gt;
+      &lt;td&gt;0.05271&lt;/td&gt;
+      &lt;td&gt;0.1627&lt;/td&gt;
+      &lt;td&gt;0.05416&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;102.20&lt;/td&gt;
+      &lt;td&gt;758.2&lt;/td&gt;
+      &lt;td&gt;0.1312&lt;/td&gt;
+      &lt;td&gt;0.15810&lt;/td&gt;
+      &lt;td&gt;0.2675&lt;/td&gt;
+      &lt;td&gt;0.13590&lt;/td&gt;
+      &lt;td&gt;0.2477&lt;/td&gt;
+      &lt;td&gt;0.06836&lt;/td&gt;
+      &lt;td&gt;0.856296&lt;/td&gt;
+      &lt;td&gt;0.733242&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;47&lt;/th&gt;
+      &lt;td&gt;13.80&lt;/td&gt;
+      &lt;td&gt;15.79&lt;/td&gt;
+      &lt;td&gt;90.43&lt;/td&gt;
+      &lt;td&gt;584.1&lt;/td&gt;
+      &lt;td&gt;0.10070&lt;/td&gt;
+      &lt;td&gt;0.12800&lt;/td&gt;
+      &lt;td&gt;0.07789&lt;/td&gt;
+      &lt;td&gt;0.05069&lt;/td&gt;
+      &lt;td&gt;0.1662&lt;/td&gt;
+      &lt;td&gt;0.06566&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;110.30&lt;/td&gt;
+      &lt;td&gt;812.4&lt;/td&gt;
+      &lt;td&gt;0.1411&lt;/td&gt;
+      &lt;td&gt;0.35420&lt;/td&gt;
+      &lt;td&gt;0.2779&lt;/td&gt;
+      &lt;td&gt;0.13830&lt;/td&gt;
+      &lt;td&gt;0.2589&lt;/td&gt;
+      &lt;td&gt;0.10300&lt;/td&gt;
+      &lt;td&gt;0.832785&lt;/td&gt;
+      &lt;td&gt;0.693531&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;137&lt;/th&gt;
+      &lt;td&gt;14.22&lt;/td&gt;
+      &lt;td&gt;27.85&lt;/td&gt;
+      &lt;td&gt;92.55&lt;/td&gt;
+      &lt;td&gt;623.9&lt;/td&gt;
+      &lt;td&gt;0.08223&lt;/td&gt;
+      &lt;td&gt;0.10390&lt;/td&gt;
+      &lt;td&gt;0.11030&lt;/td&gt;
+      &lt;td&gt;0.04408&lt;/td&gt;
+      &lt;td&gt;0.1342&lt;/td&gt;
+      &lt;td&gt;0.06129&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;102.50&lt;/td&gt;
+      &lt;td&gt;764.0&lt;/td&gt;
+      &lt;td&gt;0.1081&lt;/td&gt;
+      &lt;td&gt;0.24260&lt;/td&gt;
+      &lt;td&gt;0.3064&lt;/td&gt;
+      &lt;td&gt;0.08219&lt;/td&gt;
+      &lt;td&gt;0.1890&lt;/td&gt;
+      &lt;td&gt;0.07796&lt;/td&gt;
+      &lt;td&gt;0.707592&lt;/td&gt;
+      &lt;td&gt;0.500686&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;73&lt;/th&gt;
+      &lt;td&gt;11.80&lt;/td&gt;
+      &lt;td&gt;16.58&lt;/td&gt;
+      &lt;td&gt;78.99&lt;/td&gt;
+      &lt;td&gt;432.0&lt;/td&gt;
+      &lt;td&gt;0.10910&lt;/td&gt;
+      &lt;td&gt;0.17000&lt;/td&gt;
+      &lt;td&gt;0.16590&lt;/td&gt;
+      &lt;td&gt;0.07415&lt;/td&gt;
+      &lt;td&gt;0.2678&lt;/td&gt;
+      &lt;td&gt;0.07371&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;91.93&lt;/td&gt;
+      &lt;td&gt;591.7&lt;/td&gt;
+      &lt;td&gt;0.1385&lt;/td&gt;
+      &lt;td&gt;0.40920&lt;/td&gt;
+      &lt;td&gt;0.4504&lt;/td&gt;
+      &lt;td&gt;0.18650&lt;/td&gt;
+      &lt;td&gt;0.5774&lt;/td&gt;
+      &lt;td&gt;0.10300&lt;/td&gt;
+      &lt;td&gt;0.703641&lt;/td&gt;
+      &lt;td&gt;0.495111&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;130&lt;/th&gt;
+      &lt;td&gt;14.99&lt;/td&gt;
+      &lt;td&gt;22.11&lt;/td&gt;
+      &lt;td&gt;97.53&lt;/td&gt;
+      &lt;td&gt;693.7&lt;/td&gt;
+      &lt;td&gt;0.08515&lt;/td&gt;
+      &lt;td&gt;0.10250&lt;/td&gt;
+      &lt;td&gt;0.06859&lt;/td&gt;
+      &lt;td&gt;0.03876&lt;/td&gt;
+      &lt;td&gt;0.1944&lt;/td&gt;
+      &lt;td&gt;0.05913&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;110.20&lt;/td&gt;
+      &lt;td&gt;867.1&lt;/td&gt;
+      &lt;td&gt;0.1077&lt;/td&gt;
+      &lt;td&gt;0.33450&lt;/td&gt;
+      &lt;td&gt;0.3114&lt;/td&gt;
+      &lt;td&gt;0.13080&lt;/td&gt;
+      &lt;td&gt;0.3163&lt;/td&gt;
+      &lt;td&gt;0.09251&lt;/td&gt;
+      &lt;td&gt;0.646361&lt;/td&gt;
+      &lt;td&gt;0.417782&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;111&lt;/th&gt;
+      &lt;td&gt;13.27&lt;/td&gt;
+      &lt;td&gt;14.76&lt;/td&gt;
+      &lt;td&gt;84.74&lt;/td&gt;
+      &lt;td&gt;551.7&lt;/td&gt;
+      &lt;td&gt;0.07355&lt;/td&gt;
+      &lt;td&gt;0.05055&lt;/td&gt;
+      &lt;td&gt;0.03261&lt;/td&gt;
+      &lt;td&gt;0.02648&lt;/td&gt;
+      &lt;td&gt;0.1386&lt;/td&gt;
+      &lt;td&gt;0.05318&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;104.50&lt;/td&gt;
+      &lt;td&gt;830.6&lt;/td&gt;
+      &lt;td&gt;0.1006&lt;/td&gt;
+      &lt;td&gt;0.12380&lt;/td&gt;
+      &lt;td&gt;0.1350&lt;/td&gt;
+      &lt;td&gt;0.10010&lt;/td&gt;
+      &lt;td&gt;0.2027&lt;/td&gt;
+      &lt;td&gt;0.06206&lt;/td&gt;
+      &lt;td&gt;0.471311&lt;/td&gt;
+      &lt;td&gt;0.222134&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;119&lt;/th&gt;
+      &lt;td&gt;16.25&lt;/td&gt;
+      &lt;td&gt;19.51&lt;/td&gt;
+      &lt;td&gt;109.80&lt;/td&gt;
+      &lt;td&gt;815.8&lt;/td&gt;
+      &lt;td&gt;0.10260&lt;/td&gt;
+      &lt;td&gt;0.18930&lt;/td&gt;
+      &lt;td&gt;0.22360&lt;/td&gt;
+      &lt;td&gt;0.09194&lt;/td&gt;
+      &lt;td&gt;0.2151&lt;/td&gt;
+      &lt;td&gt;0.06578&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;122.10&lt;/td&gt;
+      &lt;td&gt;939.7&lt;/td&gt;
+      &lt;td&gt;0.1377&lt;/td&gt;
+      &lt;td&gt;0.44620&lt;/td&gt;
+      &lt;td&gt;0.5897&lt;/td&gt;
+      &lt;td&gt;0.17750&lt;/td&gt;
+      &lt;td&gt;0.3318&lt;/td&gt;
+      &lt;td&gt;0.09136&lt;/td&gt;
+      &lt;td&gt;0.467160&lt;/td&gt;
+      &lt;td&gt;0.218238&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;th&gt;25&lt;/th&gt;
+      &lt;td&gt;13.90&lt;/td&gt;
+      &lt;td&gt;19.24&lt;/td&gt;
+      &lt;td&gt;88.73&lt;/td&gt;
+      &lt;td&gt;602.9&lt;/td&gt;
+      &lt;td&gt;0.07991&lt;/td&gt;
+      &lt;td&gt;0.05326&lt;/td&gt;
+      &lt;td&gt;0.02995&lt;/td&gt;
+      &lt;td&gt;0.02070&lt;/td&gt;
+      &lt;td&gt;0.1579&lt;/td&gt;
+      &lt;td&gt;0.05594&lt;/td&gt;
+      &lt;td&gt;...&lt;/td&gt;
+      &lt;td&gt;104.40&lt;/td&gt;
+      &lt;td&gt;830.5&lt;/td&gt;
+      &lt;td&gt;0.1064&lt;/td&gt;
+      &lt;td&gt;0.14150&lt;/td&gt;
+      &lt;td&gt;0.1673&lt;/td&gt;
+      &lt;td&gt;0.08150&lt;/td&gt;
+      &lt;td&gt;0.2356&lt;/td&gt;
+      &lt;td&gt;0.07603&lt;/td&gt;
+      &lt;td&gt;0.344350&lt;/td&gt;
+      &lt;td&gt;0.118577&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;10 rows × 32 columns&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;✨&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/automating-error-analysis-with-rulefit-models/</guid><pubDate>Wed, 27 Sep 2017 13:01:51 GMT</pubDate></item><item><title>Introduction to Classification using Logistic Regression with Scikit-Learn</title><link>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+    &lt;div class="container" id="notebook-container"&gt;
+
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;This post, including the source &lt;code&gt;.ipynb&lt;/code&gt; notebook file, will be used as a basis for other topics. You can obtain a copy of the source by clicking the &lt;em&gt;Source&lt;/em&gt; link at the post of this post.&lt;/p&gt;
+&lt;p&gt;To keep things simple, we're going to utilise one of the &lt;a href="http://scikit-learn.org/stable/modules/classes.html#module-sklearn.datasets"&gt;many toy datasets&lt;/a&gt; built into Scikit-Learn! (And yes, it is a &lt;a href="https://goo.gl/U2Uwz2"&gt;real dataset&lt;/a&gt;.)&lt;/p&gt;
+&lt;p&gt;We're also not going to explain &lt;em&gt;how&lt;/em&gt; Scikit-Learn's &lt;code&gt;LogisticRegression&lt;/code&gt; is implemented in this post.&lt;/p&gt;
+&lt;p&gt;To structure our code, we will define our model in two parts:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The code we need to fit our model&lt;/li&gt;
+&lt;li&gt;The code we need to use our fitted model to generate predictions&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;When it comes to model building, these are the two main functional components - so, and for reasons which will be explained in other posts, we're going to build a Python class called &lt;code&gt;CustomModel&lt;/code&gt;, with a function for each of these components:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [1]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.linear_model&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;CustomModel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;object&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+        &lt;span class="c1"&gt;# LogisticRegression implements a number of parameters, you can read about them here:&lt;/span&gt;
+        &lt;span class="c1"&gt;# http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html&lt;/span&gt;
+        &lt;span class="c1"&gt;#&lt;/span&gt;
+        &lt;span class="c1"&gt;# With the exception of `random_state`, each of these are the defaults.&lt;/span&gt;
+        
+        &lt;span class="n"&gt;model_params&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="s1"&gt;'penalty'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'l2'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'dual'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'tol'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mf"&gt;0.0001&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'C'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mf"&gt;1.0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'fit_intercept'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'intercept_scaling'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'class_weight'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'random_state'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;    &lt;span class="c1"&gt;# Fixed to 1234 for reproducibility&lt;/span&gt;
+            &lt;span class="s1"&gt;'solver'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'liblinear'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'max_iter'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;100&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'multi_class'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'ovr'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'verbose'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'warm_start'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="s1"&gt;'n_jobs'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+    
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;model_params&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt; &lt;span class="c1"&gt;# fun fact: returning self enables method chaining i.e. .fit().predict()&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        
+        &lt;span class="c1"&gt;# We only want to output the positive case (the second column returned by `predict_proba`:&lt;/span&gt;
+    
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict_proba&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;)[:,&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Now we're ready to use our model!&lt;/p&gt;
+&lt;p&gt;In the next section we're going to load the sample data discussed above, and divide it into two portions:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;75% for model fitting&lt;/li&gt;
+&lt;li&gt;25% for predictions&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [2]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.datasets&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.model_selection&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;
+
+&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;return_X_y&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;train_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.75&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;test_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.25&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
+                                                    &lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="c1"&gt;# more reproducibility&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing text_cell rendered"&gt;
+&lt;div class="prompt input_prompt"&gt;
+&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
+&lt;p&gt;Now we have everything we need, lets load up our model, fit it with the training data, and generate some predictions:&lt;/p&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="cell border-box-sizing code_cell rendered"&gt;
+&lt;div class="input"&gt;
+&lt;div class="prompt input_prompt"&gt;In [4]:&lt;/div&gt;
+&lt;div class="inner_cell"&gt;
+    &lt;div class="input_area"&gt;
+&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# load our model&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CustomModel&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+&lt;span class="c1"&gt;# fit our model&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c1"&gt;# generate some predictions&lt;/span&gt;
+&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="output_wrapper"&gt;
+&lt;div class="output"&gt;
+
+
+&lt;div class="output_area"&gt;
+&lt;div class="prompt output_prompt"&gt;Out[4]:&lt;/div&gt;
+
+
+
+&lt;div class="output_text output_subarea output_execute_result"&gt;
+&lt;pre&gt;array([  9.25168417e-01,   9.99922130e-01,   9.53635418e-01,
+         9.88416588e-01,   9.97542577e-01,   9.95232506e-01,
+         4.60659258e-02,   9.98390194e-01,   6.59002902e-10,
+         2.76899836e-06,   8.30718694e-10,   9.63993586e-01,
+         9.94157890e-01,   9.50980576e-01,   9.96974859e-01,
+         6.97038792e-10,   9.99809391e-01,   9.96431765e-01,
+         9.99363563e-01,   8.43800531e-06,   9.95502414e-01,
+         7.77576547e-03,   1.12727716e-09,   3.40904102e-17,
+         3.68627970e-09,   6.55649762e-01,   3.51723839e-03,
+         9.97326888e-01,   9.98785233e-01,   9.97552026e-01,
+         9.86350517e-01,   9.98844211e-01,   5.70842717e-04,
+         9.87742427e-01,   9.19814189e-01,   9.78443649e-01,
+         9.92882821e-01,   1.14676290e-02,   1.48817234e-01,
+         9.98733024e-01,   4.13813658e-05,   9.93177003e-01,
+         1.72319657e-10,   8.54534408e-01,   8.81187668e-01,
+         9.97568264e-01,   9.98086681e-01,   8.32784885e-01,
+         4.49929586e-11,   8.89087737e-01,   9.28259947e-01,
+         9.91244116e-01,   9.94876558e-01,   1.51106510e-08,
+         2.60668778e-01,   9.99597520e-01,   9.98940073e-01,
+         9.99968817e-01,   9.91318570e-01,   8.29369844e-03,
+         9.93238377e-01,   9.92431535e-01,   9.29775117e-01,
+         9.99271713e-01,   9.96474598e-01,   2.41572863e-04,
+         1.51376226e-11,   9.97330558e-01,   9.98831771e-01,
+         4.79400697e-01,   9.99798779e-01,   3.57307727e-07,
+         9.99656809e-01,   7.03641088e-01,   9.98247027e-01,
+         9.96093354e-01,   9.99588791e-01,   2.58369708e-08,
+         9.98136922e-01,   7.97865310e-03,   9.99065333e-01,
+         9.98470351e-01,   9.94581260e-01,   9.29328694e-01,
+         1.41996390e-02,   1.43214384e-04,   3.71155631e-05,
+         4.45838811e-06,   9.13207438e-01,   8.56295696e-01,
+         9.99467328e-01,   9.74324559e-01,   9.99328632e-01,
+         2.91312374e-12,   1.00998256e-01,   9.86992421e-01,
+         9.97149193e-01,   9.13815924e-01,   9.98807818e-01,
+         9.84005486e-01,   3.17865443e-08,   2.30937811e-11,
+         9.98036358e-01,   9.99532884e-01,   1.24075526e-03,
+         9.98819765e-01,   9.99752279e-01,   8.53677349e-04,
+         1.53192255e-01,   9.30832406e-01,   1.49723823e-05,
+         5.28688983e-01,   1.48786146e-03,   9.92804571e-51,
+         8.86447353e-01,   9.95516043e-01,   9.98554149e-01,
+         1.75078944e-03,   9.99922978e-01,   4.67159833e-01,
+         9.99825913e-01,   9.57716419e-01,   9.95069689e-01,
+         9.98728887e-01,   7.49375338e-14,   9.92513330e-01,
+         1.49918676e-02,   1.63977226e-02,   9.95785292e-01,
+         9.56124754e-01,   3.53639065e-01,   9.96011137e-01,
+         7.27728677e-33,   9.97779030e-01,   7.77872222e-02,
+         9.90058068e-01,   9.80367925e-01,   2.92408222e-01,
+         9.98164180e-01,   1.67926421e-01,   9.99996297e-01,
+         6.35631576e-10,   1.06440027e-01])&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</guid><pubDate>Wed, 20 Sep 2017 11:09:58 GMT</pubDate></item><item><title>Building a utility function wrapper for Scikit-Learn models</title><link>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
     &lt;div class="container" id="notebook-container"&gt;
 
 &lt;div class="cell border-box-sizing text_cell rendered"&gt;
@@ -254,224 +1749,7 @@ Top feature relative performance: 35.855513308
 &lt;/div&gt;
     &lt;/div&gt;
   &lt;/div&gt;
-</description><guid>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</guid><pubDate>Sun, 17 Sep 2017 11:04:40 GMT</pubDate></item><item><title>Introduction to Classification using Logistic Regression with Scikit-Learn</title><link>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
-    &lt;div class="container" id="notebook-container"&gt;
-
-&lt;div class="cell border-box-sizing text_cell rendered"&gt;
-&lt;div class="prompt input_prompt"&gt;
-&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;This post, including the source &lt;code&gt;.ipynb&lt;/code&gt; notebook file, will be used as a basis for other topics. You can obtain a copy of the source by clicking the &lt;em&gt;Source&lt;/em&gt; link at the post of this post.&lt;/p&gt;
-&lt;p&gt;To keep things simple, we're going to utilise one of the &lt;a href="http://scikit-learn.org/stable/modules/classes.html#module-sklearn.datasets"&gt;many toy datasets&lt;/a&gt; built into Scikit-Learn! (And yes, it is a &lt;a href="https://goo.gl/U2Uwz2"&gt;real dataset&lt;/a&gt;.)&lt;/p&gt;
-&lt;p&gt;We're also not going to explain &lt;em&gt;how&lt;/em&gt; Scikit-Learn's &lt;code&gt;LogisticRegression&lt;/code&gt; is implemented in this post.&lt;/p&gt;
-&lt;p&gt;To structure our code, we will define our model in two parts:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;The code we need to fit our model&lt;/li&gt;
-&lt;li&gt;The code we need to use our fitted model to generate predictions&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;When it comes to model building, these are the two main functional components - so, and for reasons which will be explained in other posts, we're going to build a Python class called &lt;code&gt;CustomModel&lt;/code&gt;, with a function for each of these components:&lt;/p&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing code_cell rendered"&gt;
-&lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [1]:&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-    &lt;div class="input_area"&gt;
-&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.linear_model&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;
-
-&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;CustomModel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;object&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-    
-    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-
-        &lt;span class="c1"&gt;# LogisticRegression implements a number of parameters, you can read about them here:&lt;/span&gt;
-        &lt;span class="c1"&gt;# http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html&lt;/span&gt;
-        &lt;span class="c1"&gt;#&lt;/span&gt;
-        &lt;span class="c1"&gt;# With the exception of `random_state`, each of these are the defaults.&lt;/span&gt;
-        
-        &lt;span class="n"&gt;model_params&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
-            &lt;span class="s1"&gt;'penalty'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'l2'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'dual'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'tol'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mf"&gt;0.0001&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'C'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mf"&gt;1.0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'fit_intercept'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'intercept_scaling'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'class_weight'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'random_state'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;    &lt;span class="c1"&gt;# Fixed to 1234 for reproducibility&lt;/span&gt;
-            &lt;span class="s1"&gt;'solver'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'liblinear'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'max_iter'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;100&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'multi_class'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s1"&gt;'ovr'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'verbose'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'warm_start'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
-            &lt;span class="s1"&gt;'n_jobs'&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
-        &lt;span class="p"&gt;}&lt;/span&gt;
-    
-        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;LogisticRegression&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;**&lt;/span&gt;&lt;span class="n"&gt;model_params&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-        
-        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt; &lt;span class="c1"&gt;# fun fact: returning self enables method chaining i.e. .fit().predict()&lt;/span&gt;
-
-    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
-        
-        &lt;span class="c1"&gt;# We only want to output the positive case (the second column returned by `predict_proba`:&lt;/span&gt;
-    
-        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;clf&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict_proba&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;)[:,&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing text_cell rendered"&gt;
-&lt;div class="prompt input_prompt"&gt;
-&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;Now we're ready to use our model!&lt;/p&gt;
-&lt;p&gt;In the next section we're going to load the sample data discussed above, and divide it into two portions:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;75% for model fitting&lt;/li&gt;
-&lt;li&gt;25% for predictions&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing code_cell rendered"&gt;
-&lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [2]:&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-    &lt;div class="input_area"&gt;
-&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.datasets&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;
-&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;sklearn.model_selection&lt;/span&gt; &lt;span class="k"&gt;import&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;
-
-&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;load_breast_cancer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;return_X_y&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-
-&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_test&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;train_test_split&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
-                                                    &lt;span class="n"&gt;train_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.75&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
-                                                    &lt;span class="n"&gt;test_size&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mf"&gt;0.25&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; 
-                                                    &lt;span class="n"&gt;random_state&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;1234&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="c1"&gt;# more reproducibility&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing text_cell rendered"&gt;
-&lt;div class="prompt input_prompt"&gt;
-&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-&lt;div class="text_cell_render border-box-sizing rendered_html"&gt;
-&lt;p&gt;Now we have everything we need, lets load up our model, fit it with the training data, and generate some predictions:&lt;/p&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing code_cell rendered"&gt;
-&lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [4]:&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-    &lt;div class="input_area"&gt;
-&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c1"&gt;# load our model&lt;/span&gt;
-&lt;span class="n"&gt;model&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CustomModel&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
-
-&lt;span class="c1"&gt;# fit our model&lt;/span&gt;
-&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;fit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_train&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;y_train&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-
-&lt;span class="c1"&gt;# generate some predictions&lt;/span&gt;
-&lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;predict&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;X_test&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;/pre&gt;&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;div class="output_wrapper"&gt;
-&lt;div class="output"&gt;
-
-
-&lt;div class="output_area"&gt;
-&lt;div class="prompt output_prompt"&gt;Out[4]:&lt;/div&gt;
-
-
-
-&lt;div class="output_text output_subarea output_execute_result"&gt;
-&lt;pre&gt;array([  9.25168417e-01,   9.99922130e-01,   9.53635418e-01,
-         9.88416588e-01,   9.97542577e-01,   9.95232506e-01,
-         4.60659258e-02,   9.98390194e-01,   6.59002902e-10,
-         2.76899836e-06,   8.30718694e-10,   9.63993586e-01,
-         9.94157890e-01,   9.50980576e-01,   9.96974859e-01,
-         6.97038792e-10,   9.99809391e-01,   9.96431765e-01,
-         9.99363563e-01,   8.43800531e-06,   9.95502414e-01,
-         7.77576547e-03,   1.12727716e-09,   3.40904102e-17,
-         3.68627970e-09,   6.55649762e-01,   3.51723839e-03,
-         9.97326888e-01,   9.98785233e-01,   9.97552026e-01,
-         9.86350517e-01,   9.98844211e-01,   5.70842717e-04,
-         9.87742427e-01,   9.19814189e-01,   9.78443649e-01,
-         9.92882821e-01,   1.14676290e-02,   1.48817234e-01,
-         9.98733024e-01,   4.13813658e-05,   9.93177003e-01,
-         1.72319657e-10,   8.54534408e-01,   8.81187668e-01,
-         9.97568264e-01,   9.98086681e-01,   8.32784885e-01,
-         4.49929586e-11,   8.89087737e-01,   9.28259947e-01,
-         9.91244116e-01,   9.94876558e-01,   1.51106510e-08,
-         2.60668778e-01,   9.99597520e-01,   9.98940073e-01,
-         9.99968817e-01,   9.91318570e-01,   8.29369844e-03,
-         9.93238377e-01,   9.92431535e-01,   9.29775117e-01,
-         9.99271713e-01,   9.96474598e-01,   2.41572863e-04,
-         1.51376226e-11,   9.97330558e-01,   9.98831771e-01,
-         4.79400697e-01,   9.99798779e-01,   3.57307727e-07,
-         9.99656809e-01,   7.03641088e-01,   9.98247027e-01,
-         9.96093354e-01,   9.99588791e-01,   2.58369708e-08,
-         9.98136922e-01,   7.97865310e-03,   9.99065333e-01,
-         9.98470351e-01,   9.94581260e-01,   9.29328694e-01,
-         1.41996390e-02,   1.43214384e-04,   3.71155631e-05,
-         4.45838811e-06,   9.13207438e-01,   8.56295696e-01,
-         9.99467328e-01,   9.74324559e-01,   9.99328632e-01,
-         2.91312374e-12,   1.00998256e-01,   9.86992421e-01,
-         9.97149193e-01,   9.13815924e-01,   9.98807818e-01,
-         9.84005486e-01,   3.17865443e-08,   2.30937811e-11,
-         9.98036358e-01,   9.99532884e-01,   1.24075526e-03,
-         9.98819765e-01,   9.99752279e-01,   8.53677349e-04,
-         1.53192255e-01,   9.30832406e-01,   1.49723823e-05,
-         5.28688983e-01,   1.48786146e-03,   9.92804571e-51,
-         8.86447353e-01,   9.95516043e-01,   9.98554149e-01,
-         1.75078944e-03,   9.99922978e-01,   4.67159833e-01,
-         9.99825913e-01,   9.57716419e-01,   9.95069689e-01,
-         9.98728887e-01,   7.49375338e-14,   9.92513330e-01,
-         1.49918676e-02,   1.63977226e-02,   9.95785292e-01,
-         9.56124754e-01,   3.53639065e-01,   9.96011137e-01,
-         7.27728677e-33,   9.97779030e-01,   7.77872222e-02,
-         9.90058068e-01,   9.80367925e-01,   2.92408222e-01,
-         9.98164180e-01,   1.67926421e-01,   9.99996297e-01,
-         6.35631576e-10,   1.06440027e-01])&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;div class="cell border-box-sizing code_cell rendered"&gt;
-&lt;div class="input"&gt;
-&lt;div class="prompt input_prompt"&gt;In [ ]:&lt;/div&gt;
-&lt;div class="inner_cell"&gt;
-    &lt;div class="input_area"&gt;
-&lt;div class=" highlight hl-ipython3"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt; 
-&lt;/pre&gt;&lt;/div&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-    &lt;/div&gt;
-  &lt;/div&gt;
-</description><guid>http://blairhudson.github.io/blog/posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/</guid><pubDate>Sun, 17 Sep 2017 10:29:35 GMT</pubDate></item><item><title>Accessing Jupyter notebooks programatically</title><link>http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
+</description><guid>http://blairhudson.github.io/blog/posts/building-a-utility-function-wrapper-for-scikit-learn-models/</guid><pubDate>Sun, 17 Sep 2017 11:04:40 GMT</pubDate></item><item><title>Accessing Jupyter notebooks programatically</title><link>http://blairhudson.github.io/blog/posts/accessing-jupyter-notebooks-programatically/</link><dc:creator>Blair Hudson</dc:creator><description>&lt;div tabindex="-1" id="notebook" class="border-box-sizing"&gt;
     &lt;div class="container" id="notebook-container"&gt;
 
 &lt;div class="cell border-box-sizing text_cell rendered"&gt;

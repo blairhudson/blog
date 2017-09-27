@@ -12,7 +12,7 @@
 <meta name="generator" content="Nikola (getnikola.com)">
 <link rel="alternate" type="application/rss+xml" title="RSS" href="rss.xml">
 <link rel="canonical" href="http://blairhudson.github.io/blog/">
-<!--[if lt IE 9]><script src="assets/js/html5.js"></script><![endif]--><link rel="prefetch" href="posts/building-a-utility-function-wrapper-for-scikit-learn-models/" type="text/html">
+<!--[if lt IE 9]><script src="assets/js/html5.js"></script><![endif]--><link rel="prefetch" href="posts/automating-error-analysis-with-rulefit-models/" type="text/html">
 </head>
 <body>
 <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
@@ -56,7 +56,1517 @@
 
     
 <div class="postindex">
-    <article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/building-a-utility-function-wrapper-for-scikit-learn-models/" class="u-url">Building a utility function wrapper for Scikit-Learn models</a></h1>
+    <article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/automating-error-analysis-with-rulefit-models/" class="u-url">Automating error analysis with RuleFit models</a></h1>
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                Blair Hudson
+            </span></p>
+            <p class="dateline"><a href="posts/automating-error-analysis-with-rulefit-models/" rel="bookmark"><time class="published dt-published" datetime="2017-09-27T23:01:51+10:00" title="2017-09-27 23:01">2017-09-27 23:01</time></a></p>
+        </div>
+    </header><div class="e-content entry-content">
+    <div tabindex="-1" id="notebook" class="border-box-sizing">
+    <div class="container" id="notebook-container">
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>When building machine learning models, the goal is generally to improve the performance of a model based on some performance metric. One of the most simple metrics is <em>error</em>. Error is simply the inverse of model accuracy - so if a model had 95% accuracy, this would correspond with 5% error.</p>
+<p>There are many ways to improve the performance of a model and subsequently decrease the model error. This includes adding more training observations (rows), enriching training obversations with more features (columns), modifying the model algorithm or <a href="posts/optimising-hyper-parameters-efficiently-with-scikit-optimize/">optimising the algorithm parameters</a>.</p>
+<h3 id="Reducing-error-by-introducing-new-features">Reducing error by introducing new features<a class="anchor-link" href="posts/automating-error-analysis-with-rulefit-models/#Reducing-error-by-introducing-new-features">¶</a>
+</h3>
+<p>In the post linked above we looked at how to optimise the parameters of a given algorithm, so for now we're interested in what we can do with the data itself.</p>
+<p>While there are many ways to create more training observations, this is often infeasible due to consideration of cost (imagine the cost of high-end medical studies) and time (such as waiting for enough events to occur).</p>
+<p>The next option we have is to introduce new features to the observations already in our model. There is often lots of different approaches here too, including:</p>
+<ul>
+<li>engineering new features based on existing features</li>
+<li>creating new features from available data not already used</li>
+<li>making more data available (such as from external providers)</li>
+</ul>
+<p>The goal of this post is to explore a method not for assessing which approach to take, but for identifying where the gaps are to help you assess all of the options available to you.</p>
+<h3 id="Modelling-error-analysis">Modelling error analysis<a class="anchor-link" href="posts/automating-error-analysis-with-rulefit-models/#Modelling-error-analysis">¶</a>
+</h3>
+<p>To get started, let's install an implementation of RuleFit from GitHub using pip:</p>
+
+<pre><code>pip install git+https://github.com/christophM/rulefit</code></pre>
+<p>Now we're going to load up a sample data set to work on, partitioning it into data for training our initial model, and data for testing its performance. Note that feature names will be important for this exercise.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [1]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="k">import</span> <span class="n">load_breast_cancer</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
+
+<span class="c1"># load our data - we also care about feature names</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">()</span>
+<span class="n">data</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">' '</span> <span class="p">,</span> <span class="s1">'_'</span><span class="p">),</span> <span class="n">data</span><span class="o">.</span><span class="n">feature_names</span><span class="p">))</span>
+<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">target</span>
+
+<span class="c1"># split data for training and testing</span>
+<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> 
+                                                    <span class="n">train_size</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> 
+                                                    <span class="n">test_size</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> 
+                                                    <span class="n">random_state</span><span class="o">=</span><span class="mi">1234</span><span class="p">)</span> <span class="c1"># more reproducibility</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>With our data ready, let's build a quick logistic regression model on the training data. We're also going to generate predictions for our test data (as positive probabilities, or the likelihood of the class label being True).</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [2]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="k">import</span> <span class="n">LogisticRegression</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># define our model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">LogisticRegression</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">1234</span><span class="p">)</span>
+
+<span class="c1"># fit our model</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+<span class="c1"># generate some predictions</span>
+<span class="n">y_hat</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>At the start of this post we discussed model error, so let's now calculate this for our model to see how much room for improvement there is.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [3]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># calculate error on each obversation in the test set</span>
+<span class="n">y_error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">y_test</span> <span class="o">-</span> <span class="n">y_hat</span><span class="p">)</span>
+
+<span class="c1"># is there much room for improvement?</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'model error:'</span><span class="p">,</span> <span class="n">y_error</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt"></div>
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>model error: 0.0705335674785
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>It looks like there is almost 7% <em>mean absolute error</em>. Maybe we can find some good leads for improving on this?</p>
+<p>To do so, we're going to create a new model using the <code>RuleFit</code> class, but instead of targetting the original class label <em>y</em>, we're going to calculate the <em>absolute error</em> of each observation.</p>
+<p>The absolute error is the difference between the discrete actual value of <em>y</em> (0 or 1) and the continuous positive probability we predicted (0.0 to 1.0).</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [4]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">rulefit</span> <span class="k">import</span> <span class="n">RuleFit</span>
+<span class="kn">from</span> <span class="nn">sklearn.ensemble</span> <span class="k">import</span> <span class="n">GradientBoostingRegressor</span>
+
+<span class="c1"># define and fit our shiny new RuleFit model</span>
+<span class="n">generator_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">'max_depth'</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>       <span class="c1"># control the complexity of our rules</span>
+    <span class="s1">'n_estimators'</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>  
+    <span class="s1">'learning_rate'</span><span class="p">:</span> <span class="mf">0.003</span><span class="p">,</span>
+    <span class="s1">'random_state'</span><span class="p">:</span> <span class="mi">1234</span>
+<span class="p">}</span>
+<span class="n">generator</span> <span class="o">=</span> <span class="n">GradientBoostingRegressor</span><span class="p">(</span><span class="o">**</span><span class="n">generator_params</span><span class="p">)</span>
+
+<span class="n">rf</span> <span class="o">=</span> <span class="n">RuleFit</span><span class="p">(</span><span class="n">generator</span><span class="p">)</span>
+<span class="n">rf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">y_error</span><span class="p">,</span> <span class="n">feature_names</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">feature_names</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt output_prompt">Out[4]:</div>
+
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>RuleFit(tree_generator=GradientBoostingRegressor(alpha=0.9, criterion='friedman_mse', init=None,
+             learning_rate=0.003, loss='ls', max_depth=5,
+             max_features=None, max_leaf_nodes=None,
+             min_impurity_decrease=0.0, min_impurity_split=None,
+             min_samples_leaf=1, min_samples_split=2,
+             min_weight_fraction_leaf=0.0, n_estimators=1000,
+             presort='auto', random_state=1234, subsample=1.0, verbose=0,
+             warm_start=False))</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>With the <code>RuleFit</code> model fitted to our errors, we can generate a set of rules that might help us to isolate areas of our data that need enriching with new features.</p>
+<p><code>RuleFit</code> actually generates rules for the data having a positive impact on the model, but we can ignore these for error analysis for filtering <code>coef</code> &gt; 0.</p>
+<p>If we multiply the coefficient and support values calculated by <code>RuleFit</code>, we can use that as a rough estimate for how much error is due to that subset of the data.</p>
+<p>By summing these estimates, we get an approximate amount of error explained by these rules. This will differ from the above simply because our rules may not perfect fit our errors (that is, our error model has its own error).</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [5]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="c1"># get the outputs</span>
+<span class="n">rules</span> <span class="o">=</span> <span class="n">rf</span><span class="o">.</span><span class="n">get_rules</span><span class="p">()</span>
+
+<span class="c1"># remove the rules we're not interested in. if the coefficient isn't above 0</span>
+<span class="c1"># there rule is not a good indicator of an area for improvement</span>
+<span class="n">rules</span> <span class="o">=</span> <span class="n">rules</span><span class="p">[(</span><span class="n">rules</span><span class="o">.</span><span class="n">coef</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">rules</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">'linear'</span><span class="p">)]</span>
+
+<span class="c1"># we can estimate an effect for each rule on the error score from above by </span>
+<span class="c1"># multiplying the coefficient and support values</span>
+<span class="n">rules</span><span class="p">[</span><span class="s1">'effect'</span><span class="p">]</span> <span class="o">=</span> <span class="n">rules</span><span class="p">[</span><span class="s1">'coef'</span><span class="p">]</span> <span class="o">*</span> <span class="n">rules</span><span class="p">[</span><span class="s1">'support'</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">'modelled error:'</span><span class="p">,</span> <span class="n">rules</span><span class="p">[</span><span class="s1">'effect'</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'unexplained error:'</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">y_error</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">-</span> <span class="n">rules</span><span class="p">[</span><span class="s1">'effect'</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span><span class="mi">0</span><span class="p">))</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt"></div>
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>modelled error: 0.046811390404179753
+unexplained error: 0.0237221770743
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Let's take a look at the top 10 rules:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [6]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># display the top 10 rules by effect</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">'display.max_colwidth'</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">rules</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="s1">'effect'</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt output_prompt">Out[6]:</div>
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+<thead><tr style="text-align: right;">
+<th></th>
+      <th>rule</th>
+      <th>type</th>
+      <th>coef</th>
+      <th>support</th>
+      <th>effect</th>
+    </tr></thead>
+<tbody>
+<tr>
+<th>883</th>
+      <td>worst_area &lt;= 976.25 &amp; worst_area &gt; 553.299987793 &amp; radius_error &gt; 0.275350004435</td>
+      <td>rule</td>
+      <td>0.056166</td>
+      <td>0.216783</td>
+      <td>0.012176</td>
+    </tr>
+<tr>
+<th>1176</th>
+      <td>compactness_error &gt; 0.0203649997711 &amp; worst_fractal_dimension &lt;= 0.113150000572 &amp; area_error &gt; 23.2399997711 &amp; radius_error &lt;= 0.339100003242</td>
+      <td>rule</td>
+      <td>0.265549</td>
+      <td>0.041958</td>
+      <td>0.011142</td>
+    </tr>
+<tr>
+<th>769</th>
+      <td>worst_area &gt; 548.650024414 &amp; area_error &gt; 23.2350006104 &amp; worst_area &lt;= 976.25</td>
+      <td>rule</td>
+      <td>0.028937</td>
+      <td>0.223776</td>
+      <td>0.006475</td>
+    </tr>
+<tr>
+<th>458</th>
+      <td>worst_radius &gt; 15.345000267 &amp; worst_concavity &gt; 0.207249999046 &amp; worst_symmetry &gt; 0.203749999404 &amp; worst_symmetry &lt;= 0.560700058937 &amp; worst_radius &lt;= 16.8100013733</td>
+      <td>rule</td>
+      <td>0.101535</td>
+      <td>0.041958</td>
+      <td>0.004260</td>
+    </tr>
+<tr>
+<th>1548</th>
+      <td>worst_symmetry &gt; 0.203749999404 &amp; area_error &lt;= 33.375 &amp; worst_symmetry &lt;= 0.560700058937 &amp; worst_perimeter &gt; 100.555000305</td>
+      <td>rule</td>
+      <td>0.024403</td>
+      <td>0.153846</td>
+      <td>0.003754</td>
+    </tr>
+<tr>
+<th>5361</th>
+      <td>radius_error &gt; 0.344399988651 &amp; symmetry_error &lt;= 0.017725000158 &amp; area_error &gt; 23.2399997711 &amp; worst_perimeter &lt;= 105.199996948</td>
+      <td>rule</td>
+      <td>0.133092</td>
+      <td>0.027972</td>
+      <td>0.003723</td>
+    </tr>
+<tr>
+<th>357</th>
+      <td>worst_radius &gt; 15.5699996948 &amp; worst_symmetry &gt; 0.203749999404 &amp; mean_texture &gt; 19.1049995422 &amp; worst_symmetry &lt;= 0.560700058937 &amp; radius_error &lt;= 0.418200016022</td>
+      <td>rule</td>
+      <td>0.032694</td>
+      <td>0.069930</td>
+      <td>0.002286</td>
+    </tr>
+<tr>
+<th>57</th>
+      <td>worst_area &gt; 548.650024414 &amp; worst_area &lt;= 1086.0</td>
+      <td>rule</td>
+      <td>0.002326</td>
+      <td>0.405594</td>
+      <td>0.000943</td>
+    </tr>
+<tr>
+<th>1433</th>
+      <td>worst_area &gt; 548.650024414 &amp; mean_perimeter &gt; 79.2050018311 &amp; mean_texture &gt; 21.1399993896 &amp; area_error &lt;= 36.4049987793</td>
+      <td>rule</td>
+      <td>0.012087</td>
+      <td>0.069930</td>
+      <td>0.000845</td>
+    </tr>
+<tr>
+<th>5547</th>
+      <td>worst_area &gt; 744.0 &amp; worst_symmetry &gt; 0.203749999404 &amp; mean_texture &gt; 19.1049995422 &amp; worst_symmetry &lt;= 0.560700058937 &amp; radius_error &lt;= 0.418200016022</td>
+      <td>rule</td>
+      <td>0.004637</td>
+      <td>0.069930</td>
+      <td>0.000324</td>
+    </tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>To wrap up, let's produce a report of the top 3 rules, including up to 10 examples from the data to which the rules apply.</p>
+<p>This report can be used in conjunction with subject-matter experitise on the data to isolate areas for feature enrichment, to improve your model!</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [7]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.core.display</span> <span class="k">import</span> <span class="n">display</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="c1"># prepare a dataframe for use below (we really care about the `query` function)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">feature_names</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s1">'y_error'</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_error</span>
+<span class="n">df</span><span class="p">[</span><span class="s1">'y_sq_error'</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_error</span><span class="o">**</span><span class="mi">2</span>
+
+<span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">rules</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s1">'effect'</span><span class="p">)</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'rule:'</span><span class="p">,</span> <span class="n">rule</span><span class="p">[</span><span class="s1">'rule'</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'support:'</span><span class="p">,</span> <span class="n">rule</span><span class="p">[</span><span class="s1">'support'</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'coef:'</span><span class="p">,</span> <span class="n">rule</span><span class="p">[</span><span class="s1">'coef'</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'estimated error effect (support x coef):'</span><span class="p">,</span> <span class="n">rule</span><span class="p">[</span><span class="s1">'effect'</span><span class="p">])</span>
+    
+    <span class="c1"># it might be useful to compare the local error to the estimated model effect</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'rule MAE:'</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">rule</span><span class="p">[</span><span class="s1">'rule'</span><span class="p">])[</span><span class="s1">'y_error'</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'rule RMSE:'</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">rule</span><span class="p">[</span><span class="s1">'rule'</span><span class="p">])[</span><span class="s1">'y_sq_error'</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span>
+    
+    <span class="c1"># we can use the rule to filter the data</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">rule</span><span class="p">[</span><span class="s1">'rule'</span><span class="p">])</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="s1">'y_error'</span><span class="p">))</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt"></div>
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>rule: worst_area &lt;= 976.25 &amp; worst_area &gt; 553.299987793 &amp; radius_error &gt; 0.275350004435
+support: 0.21678321678321677
+coef: 0.05616597023836435
+estimated error effect (support x coef): 0.012175839702023041
+rule MAE: 0.2658110370900938
+rule RMSE: 0.4155759177730745
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+<div class="prompt"></div>
+
+
+<div class="output_html rendered_html output_subarea ">
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+<thead><tr style="text-align: right;">
+<th></th>
+      <th>mean_radius</th>
+      <th>mean_texture</th>
+      <th>mean_perimeter</th>
+      <th>mean_area</th>
+      <th>mean_smoothness</th>
+      <th>mean_compactness</th>
+      <th>mean_concavity</th>
+      <th>mean_concave_points</th>
+      <th>mean_symmetry</th>
+      <th>mean_fractal_dimension</th>
+      <th>...</th>
+      <th>worst_perimeter</th>
+      <th>worst_area</th>
+      <th>worst_smoothness</th>
+      <th>worst_compactness</th>
+      <th>worst_concavity</th>
+      <th>worst_concave_points</th>
+      <th>worst_symmetry</th>
+      <th>worst_fractal_dimension</th>
+      <th>y_error</th>
+      <th>y_sq_error</th>
+    </tr></thead>
+<tbody>
+<tr>
+<th>91</th>
+      <td>11.76</td>
+      <td>18.14</td>
+      <td>75.00</td>
+      <td>431.1</td>
+      <td>0.09968</td>
+      <td>0.05914</td>
+      <td>0.02685</td>
+      <td>0.03515</td>
+      <td>0.1619</td>
+      <td>0.06287</td>
+      <td>...</td>
+      <td>85.10</td>
+      <td>553.6</td>
+      <td>0.1137</td>
+      <td>0.07974</td>
+      <td>0.0612</td>
+      <td>0.07160</td>
+      <td>0.1978</td>
+      <td>0.06915</td>
+      <td>0.974325</td>
+      <td>0.949308</td>
+    </tr>
+<tr>
+<th>83</th>
+      <td>15.37</td>
+      <td>22.76</td>
+      <td>100.20</td>
+      <td>728.2</td>
+      <td>0.09200</td>
+      <td>0.10360</td>
+      <td>0.11220</td>
+      <td>0.07483</td>
+      <td>0.1717</td>
+      <td>0.06097</td>
+      <td>...</td>
+      <td>107.50</td>
+      <td>830.9</td>
+      <td>0.1257</td>
+      <td>0.19970</td>
+      <td>0.2846</td>
+      <td>0.14760</td>
+      <td>0.2556</td>
+      <td>0.06828</td>
+      <td>0.929329</td>
+      <td>0.863652</td>
+    </tr>
+<tr>
+<th>89</th>
+      <td>14.60</td>
+      <td>23.29</td>
+      <td>93.97</td>
+      <td>664.7</td>
+      <td>0.08682</td>
+      <td>0.06636</td>
+      <td>0.08390</td>
+      <td>0.05271</td>
+      <td>0.1627</td>
+      <td>0.05416</td>
+      <td>...</td>
+      <td>102.20</td>
+      <td>758.2</td>
+      <td>0.1312</td>
+      <td>0.15810</td>
+      <td>0.2675</td>
+      <td>0.13590</td>
+      <td>0.2477</td>
+      <td>0.06836</td>
+      <td>0.856296</td>
+      <td>0.733242</td>
+    </tr>
+<tr>
+<th>47</th>
+      <td>13.80</td>
+      <td>15.79</td>
+      <td>90.43</td>
+      <td>584.1</td>
+      <td>0.10070</td>
+      <td>0.12800</td>
+      <td>0.07789</td>
+      <td>0.05069</td>
+      <td>0.1662</td>
+      <td>0.06566</td>
+      <td>...</td>
+      <td>110.30</td>
+      <td>812.4</td>
+      <td>0.1411</td>
+      <td>0.35420</td>
+      <td>0.2779</td>
+      <td>0.13830</td>
+      <td>0.2589</td>
+      <td>0.10300</td>
+      <td>0.832785</td>
+      <td>0.693531</td>
+    </tr>
+<tr>
+<th>137</th>
+      <td>14.22</td>
+      <td>27.85</td>
+      <td>92.55</td>
+      <td>623.9</td>
+      <td>0.08223</td>
+      <td>0.10390</td>
+      <td>0.11030</td>
+      <td>0.04408</td>
+      <td>0.1342</td>
+      <td>0.06129</td>
+      <td>...</td>
+      <td>102.50</td>
+      <td>764.0</td>
+      <td>0.1081</td>
+      <td>0.24260</td>
+      <td>0.3064</td>
+      <td>0.08219</td>
+      <td>0.1890</td>
+      <td>0.07796</td>
+      <td>0.707592</td>
+      <td>0.500686</td>
+    </tr>
+<tr>
+<th>73</th>
+      <td>11.80</td>
+      <td>16.58</td>
+      <td>78.99</td>
+      <td>432.0</td>
+      <td>0.10910</td>
+      <td>0.17000</td>
+      <td>0.16590</td>
+      <td>0.07415</td>
+      <td>0.2678</td>
+      <td>0.07371</td>
+      <td>...</td>
+      <td>91.93</td>
+      <td>591.7</td>
+      <td>0.1385</td>
+      <td>0.40920</td>
+      <td>0.4504</td>
+      <td>0.18650</td>
+      <td>0.5774</td>
+      <td>0.10300</td>
+      <td>0.703641</td>
+      <td>0.495111</td>
+    </tr>
+<tr>
+<th>130</th>
+      <td>14.99</td>
+      <td>22.11</td>
+      <td>97.53</td>
+      <td>693.7</td>
+      <td>0.08515</td>
+      <td>0.10250</td>
+      <td>0.06859</td>
+      <td>0.03876</td>
+      <td>0.1944</td>
+      <td>0.05913</td>
+      <td>...</td>
+      <td>110.20</td>
+      <td>867.1</td>
+      <td>0.1077</td>
+      <td>0.33450</td>
+      <td>0.3114</td>
+      <td>0.13080</td>
+      <td>0.3163</td>
+      <td>0.09251</td>
+      <td>0.646361</td>
+      <td>0.417782</td>
+    </tr>
+<tr>
+<th>111</th>
+      <td>13.27</td>
+      <td>14.76</td>
+      <td>84.74</td>
+      <td>551.7</td>
+      <td>0.07355</td>
+      <td>0.05055</td>
+      <td>0.03261</td>
+      <td>0.02648</td>
+      <td>0.1386</td>
+      <td>0.05318</td>
+      <td>...</td>
+      <td>104.50</td>
+      <td>830.6</td>
+      <td>0.1006</td>
+      <td>0.12380</td>
+      <td>0.1350</td>
+      <td>0.10010</td>
+      <td>0.2027</td>
+      <td>0.06206</td>
+      <td>0.471311</td>
+      <td>0.222134</td>
+    </tr>
+<tr>
+<th>119</th>
+      <td>16.25</td>
+      <td>19.51</td>
+      <td>109.80</td>
+      <td>815.8</td>
+      <td>0.10260</td>
+      <td>0.18930</td>
+      <td>0.22360</td>
+      <td>0.09194</td>
+      <td>0.2151</td>
+      <td>0.06578</td>
+      <td>...</td>
+      <td>122.10</td>
+      <td>939.7</td>
+      <td>0.1377</td>
+      <td>0.44620</td>
+      <td>0.5897</td>
+      <td>0.17750</td>
+      <td>0.3318</td>
+      <td>0.09136</td>
+      <td>0.467160</td>
+      <td>0.218238</td>
+    </tr>
+<tr>
+<th>25</th>
+      <td>13.90</td>
+      <td>19.24</td>
+      <td>88.73</td>
+      <td>602.9</td>
+      <td>0.07991</td>
+      <td>0.05326</td>
+      <td>0.02995</td>
+      <td>0.02070</td>
+      <td>0.1579</td>
+      <td>0.05594</td>
+      <td>...</td>
+      <td>104.40</td>
+      <td>830.5</td>
+      <td>0.1064</td>
+      <td>0.14150</td>
+      <td>0.1673</td>
+      <td>0.08150</td>
+      <td>0.2356</td>
+      <td>0.07603</td>
+      <td>0.344350</td>
+      <td>0.118577</td>
+    </tr>
+</tbody>
+</table>
+<p>10 rows × 32 columns</p>
+</div>
+</div>
+
+</div>
+
+<div class="output_area">
+<div class="prompt"></div>
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>rule: compactness_error &gt; 0.0203649997711 &amp; worst_fractal_dimension &lt;= 0.113150000572 &amp; area_error &gt; 23.2399997711 &amp; radius_error &lt;= 0.339100003242
+support: 0.04195804195804196
+coef: 0.26554881554597404
+estimated error effect (support x coef): 0.011141908344586324
+rule MAE: 0.7144778689742627
+rule RMSE: 0.7290404836131931
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+<div class="prompt"></div>
+
+
+<div class="output_html rendered_html output_subarea ">
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+<thead><tr style="text-align: right;">
+<th></th>
+      <th>mean_radius</th>
+      <th>mean_texture</th>
+      <th>mean_perimeter</th>
+      <th>mean_area</th>
+      <th>mean_smoothness</th>
+      <th>mean_compactness</th>
+      <th>mean_concavity</th>
+      <th>mean_concave_points</th>
+      <th>mean_symmetry</th>
+      <th>mean_fractal_dimension</th>
+      <th>...</th>
+      <th>worst_perimeter</th>
+      <th>worst_area</th>
+      <th>worst_smoothness</th>
+      <th>worst_compactness</th>
+      <th>worst_concavity</th>
+      <th>worst_concave_points</th>
+      <th>worst_symmetry</th>
+      <th>worst_fractal_dimension</th>
+      <th>y_error</th>
+      <th>y_sq_error</th>
+    </tr></thead>
+<tbody>
+<tr>
+<th>83</th>
+      <td>15.37</td>
+      <td>22.76</td>
+      <td>100.20</td>
+      <td>728.2</td>
+      <td>0.09200</td>
+      <td>0.1036</td>
+      <td>0.11220</td>
+      <td>0.07483</td>
+      <td>0.1717</td>
+      <td>0.06097</td>
+      <td>...</td>
+      <td>107.50</td>
+      <td>830.9</td>
+      <td>0.1257</td>
+      <td>0.1997</td>
+      <td>0.2846</td>
+      <td>0.14760</td>
+      <td>0.2556</td>
+      <td>0.06828</td>
+      <td>0.929329</td>
+      <td>0.863652</td>
+    </tr>
+<tr>
+<th>47</th>
+      <td>13.80</td>
+      <td>15.79</td>
+      <td>90.43</td>
+      <td>584.1</td>
+      <td>0.10070</td>
+      <td>0.1280</td>
+      <td>0.07789</td>
+      <td>0.05069</td>
+      <td>0.1662</td>
+      <td>0.06566</td>
+      <td>...</td>
+      <td>110.30</td>
+      <td>812.4</td>
+      <td>0.1411</td>
+      <td>0.3542</td>
+      <td>0.2779</td>
+      <td>0.13830</td>
+      <td>0.2589</td>
+      <td>0.10300</td>
+      <td>0.832785</td>
+      <td>0.693531</td>
+    </tr>
+<tr>
+<th>137</th>
+      <td>14.22</td>
+      <td>27.85</td>
+      <td>92.55</td>
+      <td>623.9</td>
+      <td>0.08223</td>
+      <td>0.1039</td>
+      <td>0.11030</td>
+      <td>0.04408</td>
+      <td>0.1342</td>
+      <td>0.06129</td>
+      <td>...</td>
+      <td>102.50</td>
+      <td>764.0</td>
+      <td>0.1081</td>
+      <td>0.2426</td>
+      <td>0.3064</td>
+      <td>0.08219</td>
+      <td>0.1890</td>
+      <td>0.07796</td>
+      <td>0.707592</td>
+      <td>0.500686</td>
+    </tr>
+<tr>
+<th>73</th>
+      <td>11.80</td>
+      <td>16.58</td>
+      <td>78.99</td>
+      <td>432.0</td>
+      <td>0.10910</td>
+      <td>0.1700</td>
+      <td>0.16590</td>
+      <td>0.07415</td>
+      <td>0.2678</td>
+      <td>0.07371</td>
+      <td>...</td>
+      <td>91.93</td>
+      <td>591.7</td>
+      <td>0.1385</td>
+      <td>0.4092</td>
+      <td>0.4504</td>
+      <td>0.18650</td>
+      <td>0.5774</td>
+      <td>0.10300</td>
+      <td>0.703641</td>
+      <td>0.495111</td>
+    </tr>
+<tr>
+<th>130</th>
+      <td>14.99</td>
+      <td>22.11</td>
+      <td>97.53</td>
+      <td>693.7</td>
+      <td>0.08515</td>
+      <td>0.1025</td>
+      <td>0.06859</td>
+      <td>0.03876</td>
+      <td>0.1944</td>
+      <td>0.05913</td>
+      <td>...</td>
+      <td>110.20</td>
+      <td>867.1</td>
+      <td>0.1077</td>
+      <td>0.3345</td>
+      <td>0.3114</td>
+      <td>0.13080</td>
+      <td>0.3163</td>
+      <td>0.09251</td>
+      <td>0.646361</td>
+      <td>0.417782</td>
+    </tr>
+<tr>
+<th>119</th>
+      <td>16.25</td>
+      <td>19.51</td>
+      <td>109.80</td>
+      <td>815.8</td>
+      <td>0.10260</td>
+      <td>0.1893</td>
+      <td>0.22360</td>
+      <td>0.09194</td>
+      <td>0.2151</td>
+      <td>0.06578</td>
+      <td>...</td>
+      <td>122.10</td>
+      <td>939.7</td>
+      <td>0.1377</td>
+      <td>0.4462</td>
+      <td>0.5897</td>
+      <td>0.17750</td>
+      <td>0.3318</td>
+      <td>0.09136</td>
+      <td>0.467160</td>
+      <td>0.218238</td>
+    </tr>
+</tbody>
+</table>
+<p>6 rows × 32 columns</p>
+</div>
+</div>
+
+</div>
+
+<div class="output_area">
+<div class="prompt"></div>
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>rule: worst_area &gt; 548.650024414 &amp; area_error &gt; 23.2350006104 &amp; worst_area &lt;= 976.25
+support: 0.22377622377622378
+coef: 0.02893728555291459
+estimated error effect (support x coef): 0.006475476487365502
+rule MAE: 0.2578116453233828
+rule RMSE: 0.40903437023906347
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+<div class="prompt"></div>
+
+
+<div class="output_html rendered_html output_subarea ">
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
+<table border="1" class="dataframe">
+<thead><tr style="text-align: right;">
+<th></th>
+      <th>mean_radius</th>
+      <th>mean_texture</th>
+      <th>mean_perimeter</th>
+      <th>mean_area</th>
+      <th>mean_smoothness</th>
+      <th>mean_compactness</th>
+      <th>mean_concavity</th>
+      <th>mean_concave_points</th>
+      <th>mean_symmetry</th>
+      <th>mean_fractal_dimension</th>
+      <th>...</th>
+      <th>worst_perimeter</th>
+      <th>worst_area</th>
+      <th>worst_smoothness</th>
+      <th>worst_compactness</th>
+      <th>worst_concavity</th>
+      <th>worst_concave_points</th>
+      <th>worst_symmetry</th>
+      <th>worst_fractal_dimension</th>
+      <th>y_error</th>
+      <th>y_sq_error</th>
+    </tr></thead>
+<tbody>
+<tr>
+<th>91</th>
+      <td>11.76</td>
+      <td>18.14</td>
+      <td>75.00</td>
+      <td>431.1</td>
+      <td>0.09968</td>
+      <td>0.05914</td>
+      <td>0.02685</td>
+      <td>0.03515</td>
+      <td>0.1619</td>
+      <td>0.06287</td>
+      <td>...</td>
+      <td>85.10</td>
+      <td>553.6</td>
+      <td>0.1137</td>
+      <td>0.07974</td>
+      <td>0.0612</td>
+      <td>0.07160</td>
+      <td>0.1978</td>
+      <td>0.06915</td>
+      <td>0.974325</td>
+      <td>0.949308</td>
+    </tr>
+<tr>
+<th>83</th>
+      <td>15.37</td>
+      <td>22.76</td>
+      <td>100.20</td>
+      <td>728.2</td>
+      <td>0.09200</td>
+      <td>0.10360</td>
+      <td>0.11220</td>
+      <td>0.07483</td>
+      <td>0.1717</td>
+      <td>0.06097</td>
+      <td>...</td>
+      <td>107.50</td>
+      <td>830.9</td>
+      <td>0.1257</td>
+      <td>0.19970</td>
+      <td>0.2846</td>
+      <td>0.14760</td>
+      <td>0.2556</td>
+      <td>0.06828</td>
+      <td>0.929329</td>
+      <td>0.863652</td>
+    </tr>
+<tr>
+<th>89</th>
+      <td>14.60</td>
+      <td>23.29</td>
+      <td>93.97</td>
+      <td>664.7</td>
+      <td>0.08682</td>
+      <td>0.06636</td>
+      <td>0.08390</td>
+      <td>0.05271</td>
+      <td>0.1627</td>
+      <td>0.05416</td>
+      <td>...</td>
+      <td>102.20</td>
+      <td>758.2</td>
+      <td>0.1312</td>
+      <td>0.15810</td>
+      <td>0.2675</td>
+      <td>0.13590</td>
+      <td>0.2477</td>
+      <td>0.06836</td>
+      <td>0.856296</td>
+      <td>0.733242</td>
+    </tr>
+<tr>
+<th>47</th>
+      <td>13.80</td>
+      <td>15.79</td>
+      <td>90.43</td>
+      <td>584.1</td>
+      <td>0.10070</td>
+      <td>0.12800</td>
+      <td>0.07789</td>
+      <td>0.05069</td>
+      <td>0.1662</td>
+      <td>0.06566</td>
+      <td>...</td>
+      <td>110.30</td>
+      <td>812.4</td>
+      <td>0.1411</td>
+      <td>0.35420</td>
+      <td>0.2779</td>
+      <td>0.13830</td>
+      <td>0.2589</td>
+      <td>0.10300</td>
+      <td>0.832785</td>
+      <td>0.693531</td>
+    </tr>
+<tr>
+<th>137</th>
+      <td>14.22</td>
+      <td>27.85</td>
+      <td>92.55</td>
+      <td>623.9</td>
+      <td>0.08223</td>
+      <td>0.10390</td>
+      <td>0.11030</td>
+      <td>0.04408</td>
+      <td>0.1342</td>
+      <td>0.06129</td>
+      <td>...</td>
+      <td>102.50</td>
+      <td>764.0</td>
+      <td>0.1081</td>
+      <td>0.24260</td>
+      <td>0.3064</td>
+      <td>0.08219</td>
+      <td>0.1890</td>
+      <td>0.07796</td>
+      <td>0.707592</td>
+      <td>0.500686</td>
+    </tr>
+<tr>
+<th>73</th>
+      <td>11.80</td>
+      <td>16.58</td>
+      <td>78.99</td>
+      <td>432.0</td>
+      <td>0.10910</td>
+      <td>0.17000</td>
+      <td>0.16590</td>
+      <td>0.07415</td>
+      <td>0.2678</td>
+      <td>0.07371</td>
+      <td>...</td>
+      <td>91.93</td>
+      <td>591.7</td>
+      <td>0.1385</td>
+      <td>0.40920</td>
+      <td>0.4504</td>
+      <td>0.18650</td>
+      <td>0.5774</td>
+      <td>0.10300</td>
+      <td>0.703641</td>
+      <td>0.495111</td>
+    </tr>
+<tr>
+<th>130</th>
+      <td>14.99</td>
+      <td>22.11</td>
+      <td>97.53</td>
+      <td>693.7</td>
+      <td>0.08515</td>
+      <td>0.10250</td>
+      <td>0.06859</td>
+      <td>0.03876</td>
+      <td>0.1944</td>
+      <td>0.05913</td>
+      <td>...</td>
+      <td>110.20</td>
+      <td>867.1</td>
+      <td>0.1077</td>
+      <td>0.33450</td>
+      <td>0.3114</td>
+      <td>0.13080</td>
+      <td>0.3163</td>
+      <td>0.09251</td>
+      <td>0.646361</td>
+      <td>0.417782</td>
+    </tr>
+<tr>
+<th>111</th>
+      <td>13.27</td>
+      <td>14.76</td>
+      <td>84.74</td>
+      <td>551.7</td>
+      <td>0.07355</td>
+      <td>0.05055</td>
+      <td>0.03261</td>
+      <td>0.02648</td>
+      <td>0.1386</td>
+      <td>0.05318</td>
+      <td>...</td>
+      <td>104.50</td>
+      <td>830.6</td>
+      <td>0.1006</td>
+      <td>0.12380</td>
+      <td>0.1350</td>
+      <td>0.10010</td>
+      <td>0.2027</td>
+      <td>0.06206</td>
+      <td>0.471311</td>
+      <td>0.222134</td>
+    </tr>
+<tr>
+<th>119</th>
+      <td>16.25</td>
+      <td>19.51</td>
+      <td>109.80</td>
+      <td>815.8</td>
+      <td>0.10260</td>
+      <td>0.18930</td>
+      <td>0.22360</td>
+      <td>0.09194</td>
+      <td>0.2151</td>
+      <td>0.06578</td>
+      <td>...</td>
+      <td>122.10</td>
+      <td>939.7</td>
+      <td>0.1377</td>
+      <td>0.44620</td>
+      <td>0.5897</td>
+      <td>0.17750</td>
+      <td>0.3318</td>
+      <td>0.09136</td>
+      <td>0.467160</td>
+      <td>0.218238</td>
+    </tr>
+<tr>
+<th>25</th>
+      <td>13.90</td>
+      <td>19.24</td>
+      <td>88.73</td>
+      <td>602.9</td>
+      <td>0.07991</td>
+      <td>0.05326</td>
+      <td>0.02995</td>
+      <td>0.02070</td>
+      <td>0.1579</td>
+      <td>0.05594</td>
+      <td>...</td>
+      <td>104.40</td>
+      <td>830.5</td>
+      <td>0.1064</td>
+      <td>0.14150</td>
+      <td>0.1673</td>
+      <td>0.08150</td>
+      <td>0.2356</td>
+      <td>0.07603</td>
+      <td>0.344350</td>
+      <td>0.118577</td>
+    </tr>
+</tbody>
+</table>
+<p>10 rows × 32 columns</p>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>✨</p>
+
+</div>
+</div>
+</div>
+    </div>
+  </div>
+
+    </div>
+    </article><article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/" class="u-url">Introduction to Classification using Logistic Regression with Scikit-Learn</a></h1>
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                Blair Hudson
+            </span></p>
+            <p class="dateline"><a href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/" rel="bookmark"><time class="published dt-published" datetime="2017-09-20T21:09:58+10:00" title="2017-09-20 21:09">2017-09-20 21:09</time></a></p>
+        </div>
+    </header><div class="e-content entry-content">
+    <div tabindex="-1" id="notebook" class="border-box-sizing">
+    <div class="container" id="notebook-container">
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>This post, including the source <code>.ipynb</code> notebook file, will be used as a basis for other topics. You can obtain a copy of the source by clicking the <em>Source</em> link at the post of this post.</p>
+<p>To keep things simple, we're going to utilise one of the <a href="http://scikit-learn.org/stable/modules/classes.html#module-sklearn.datasets">many toy datasets</a> built into Scikit-Learn! (And yes, it is a <a href="https://goo.gl/U2Uwz2">real dataset</a>.)</p>
+<p>We're also not going to explain <em>how</em> Scikit-Learn's <code>LogisticRegression</code> is implemented in this post.</p>
+<p>To structure our code, we will define our model in two parts:</p>
+<ul>
+<li>The code we need to fit our model</li>
+<li>The code we need to use our fitted model to generate predictions</li>
+</ul>
+<p>When it comes to model building, these are the two main functional components - so, and for reasons which will be explained in other posts, we're going to build a Python class called <code>CustomModel</code>, with a function for each of these components:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [1]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="k">import</span> <span class="n">LogisticRegression</span>
+
+<span class="k">class</span> <span class="nc">CustomModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+
+        <span class="c1"># LogisticRegression implements a number of parameters, you can read about them here:</span>
+        <span class="c1"># http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html</span>
+        <span class="c1">#</span>
+        <span class="c1"># With the exception of `random_state`, each of these are the defaults.</span>
+        
+        <span class="n">model_params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">'penalty'</span><span class="p">:</span> <span class="s1">'l2'</span><span class="p">,</span>
+            <span class="s1">'dual'</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s1">'tol'</span><span class="p">:</span> <span class="mf">0.0001</span><span class="p">,</span>
+            <span class="s1">'C'</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="s1">'fit_intercept'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s1">'intercept_scaling'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">'class_weight'</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">'random_state'</span><span class="p">:</span> <span class="mi">1234</span><span class="p">,</span>    <span class="c1"># Fixed to 1234 for reproducibility</span>
+            <span class="s1">'solver'</span><span class="p">:</span> <span class="s1">'liblinear'</span><span class="p">,</span>
+            <span class="s1">'max_iter'</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+            <span class="s1">'multi_class'</span><span class="p">:</span> <span class="s1">'ovr'</span><span class="p">,</span>
+            <span class="s1">'verbose'</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">'warm_start'</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s1">'n_jobs'</span><span class="p">:</span> <span class="mi">1</span>
+        <span class="p">}</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">clf</span> <span class="o">=</span> <span class="n">LogisticRegression</span><span class="p">(</span><span class="o">**</span><span class="n">model_params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span> <span class="c1"># fun fact: returning self enables method chaining i.e. .fit().predict()</span>
+
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        
+        <span class="c1"># We only want to output the positive case (the second column returned by `predict_proba`:</span>
+    
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now we're ready to use our model!</p>
+<p>In the next section we're going to load the sample data discussed above, and divide it into two portions:</p>
+<ul>
+<li>75% for model fitting</li>
+<li>25% for predictions</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [2]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="k">import</span> <span class="n">load_breast_cancer</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
+
+<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> 
+                                                    <span class="n">train_size</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> 
+                                                    <span class="n">test_size</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> 
+                                                    <span class="n">random_state</span><span class="o">=</span><span class="mi">1234</span><span class="p">)</span> <span class="c1"># more reproducibility</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now we have everything we need, lets load up our model, fit it with the training data, and generate some predictions:</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [4]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># load our model</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">CustomModel</span><span class="p">()</span>
+
+<span class="c1"># fit our model</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+<span class="c1"># generate some predictions</span>
+<span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt output_prompt">Out[4]:</div>
+
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>array([  9.25168417e-01,   9.99922130e-01,   9.53635418e-01,
+         9.88416588e-01,   9.97542577e-01,   9.95232506e-01,
+         4.60659258e-02,   9.98390194e-01,   6.59002902e-10,
+         2.76899836e-06,   8.30718694e-10,   9.63993586e-01,
+         9.94157890e-01,   9.50980576e-01,   9.96974859e-01,
+         6.97038792e-10,   9.99809391e-01,   9.96431765e-01,
+         9.99363563e-01,   8.43800531e-06,   9.95502414e-01,
+         7.77576547e-03,   1.12727716e-09,   3.40904102e-17,
+         3.68627970e-09,   6.55649762e-01,   3.51723839e-03,
+         9.97326888e-01,   9.98785233e-01,   9.97552026e-01,
+         9.86350517e-01,   9.98844211e-01,   5.70842717e-04,
+         9.87742427e-01,   9.19814189e-01,   9.78443649e-01,
+         9.92882821e-01,   1.14676290e-02,   1.48817234e-01,
+         9.98733024e-01,   4.13813658e-05,   9.93177003e-01,
+         1.72319657e-10,   8.54534408e-01,   8.81187668e-01,
+         9.97568264e-01,   9.98086681e-01,   8.32784885e-01,
+         4.49929586e-11,   8.89087737e-01,   9.28259947e-01,
+         9.91244116e-01,   9.94876558e-01,   1.51106510e-08,
+         2.60668778e-01,   9.99597520e-01,   9.98940073e-01,
+         9.99968817e-01,   9.91318570e-01,   8.29369844e-03,
+         9.93238377e-01,   9.92431535e-01,   9.29775117e-01,
+         9.99271713e-01,   9.96474598e-01,   2.41572863e-04,
+         1.51376226e-11,   9.97330558e-01,   9.98831771e-01,
+         4.79400697e-01,   9.99798779e-01,   3.57307727e-07,
+         9.99656809e-01,   7.03641088e-01,   9.98247027e-01,
+         9.96093354e-01,   9.99588791e-01,   2.58369708e-08,
+         9.98136922e-01,   7.97865310e-03,   9.99065333e-01,
+         9.98470351e-01,   9.94581260e-01,   9.29328694e-01,
+         1.41996390e-02,   1.43214384e-04,   3.71155631e-05,
+         4.45838811e-06,   9.13207438e-01,   8.56295696e-01,
+         9.99467328e-01,   9.74324559e-01,   9.99328632e-01,
+         2.91312374e-12,   1.00998256e-01,   9.86992421e-01,
+         9.97149193e-01,   9.13815924e-01,   9.98807818e-01,
+         9.84005486e-01,   3.17865443e-08,   2.30937811e-11,
+         9.98036358e-01,   9.99532884e-01,   1.24075526e-03,
+         9.98819765e-01,   9.99752279e-01,   8.53677349e-04,
+         1.53192255e-01,   9.30832406e-01,   1.49723823e-05,
+         5.28688983e-01,   1.48786146e-03,   9.92804571e-51,
+         8.86447353e-01,   9.95516043e-01,   9.98554149e-01,
+         1.75078944e-03,   9.99922978e-01,   4.67159833e-01,
+         9.99825913e-01,   9.57716419e-01,   9.95069689e-01,
+         9.98728887e-01,   7.49375338e-14,   9.92513330e-01,
+         1.49918676e-02,   1.63977226e-02,   9.95785292e-01,
+         9.56124754e-01,   3.53639065e-01,   9.96011137e-01,
+         7.27728677e-33,   9.97779030e-01,   7.77872222e-02,
+         9.90058068e-01,   9.80367925e-01,   2.92408222e-01,
+         9.98164180e-01,   1.67926421e-01,   9.99996297e-01,
+         6.35631576e-10,   1.06440027e-01])</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    </div>
+  </div>
+
+    </div>
+    </article><article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/building-a-utility-function-wrapper-for-scikit-learn-models/" class="u-url">Building a utility function wrapper for Scikit-Learn models</a></h1>
         <div class="metadata">
             <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
                 Blair Hudson
@@ -322,232 +1832,6 @@ Top feature relative performance: 35.855513308
 
 </div>
 </div>
-</div>
-    </div>
-  </div>
-
-    </div>
-    </article><article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/" class="u-url">Introduction to Classification using Logistic Regression with Scikit-Learn</a></h1>
-        <div class="metadata">
-            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
-                Blair Hudson
-            </span></p>
-            <p class="dateline"><a href="posts/introduction-to-classification-using-logistic-regression-with-scikit-learn/" rel="bookmark"><time class="published dt-published" datetime="2017-09-17T20:29:35+10:00" title="2017-09-17 20:29">2017-09-17 20:29</time></a></p>
-        </div>
-    </header><div class="e-content entry-content">
-    <div tabindex="-1" id="notebook" class="border-box-sizing">
-    <div class="container" id="notebook-container">
-
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>This post, including the source <code>.ipynb</code> notebook file, will be used as a basis for other topics. You can obtain a copy of the source by clicking the <em>Source</em> link at the post of this post.</p>
-<p>To keep things simple, we're going to utilise one of the <a href="http://scikit-learn.org/stable/modules/classes.html#module-sklearn.datasets">many toy datasets</a> built into Scikit-Learn! (And yes, it is a <a href="https://goo.gl/U2Uwz2">real dataset</a>.)</p>
-<p>We're also not going to explain <em>how</em> Scikit-Learn's <code>LogisticRegression</code> is implemented in this post.</p>
-<p>To structure our code, we will define our model in two parts:</p>
-<ul>
-<li>The code we need to fit our model</li>
-<li>The code we need to use our fitted model to generate predictions</li>
-</ul>
-<p>When it comes to model building, these are the two main functional components - so, and for reasons which will be explained in other posts, we're going to build a Python class called <code>CustomModel</code>, with a function for each of these components:</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In [1]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="k">import</span> <span class="n">LogisticRegression</span>
-
-<span class="k">class</span> <span class="nc">CustomModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    
-    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-
-        <span class="c1"># LogisticRegression implements a number of parameters, you can read about them here:</span>
-        <span class="c1"># http://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html</span>
-        <span class="c1">#</span>
-        <span class="c1"># With the exception of `random_state`, each of these are the defaults.</span>
-        
-        <span class="n">model_params</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">'penalty'</span><span class="p">:</span> <span class="s1">'l2'</span><span class="p">,</span>
-            <span class="s1">'dual'</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-            <span class="s1">'tol'</span><span class="p">:</span> <span class="mf">0.0001</span><span class="p">,</span>
-            <span class="s1">'C'</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
-            <span class="s1">'fit_intercept'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-            <span class="s1">'intercept_scaling'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="s1">'class_weight'</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s1">'random_state'</span><span class="p">:</span> <span class="mi">1234</span><span class="p">,</span>    <span class="c1"># Fixed to 1234 for reproducibility</span>
-            <span class="s1">'solver'</span><span class="p">:</span> <span class="s1">'liblinear'</span><span class="p">,</span>
-            <span class="s1">'max_iter'</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
-            <span class="s1">'multi_class'</span><span class="p">:</span> <span class="s1">'ovr'</span><span class="p">,</span>
-            <span class="s1">'verbose'</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-            <span class="s1">'warm_start'</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-            <span class="s1">'n_jobs'</span><span class="p">:</span> <span class="mi">1</span>
-        <span class="p">}</span>
-    
-        <span class="bp">self</span><span class="o">.</span><span class="n">clf</span> <span class="o">=</span> <span class="n">LogisticRegression</span><span class="p">(</span><span class="o">**</span><span class="n">model_params</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-        
-        <span class="k">return</span> <span class="bp">self</span> <span class="c1"># fun fact: returning self enables method chaining i.e. .fit().predict()</span>
-
-    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
-        
-        <span class="c1"># We only want to output the positive case (the second column returned by `predict_proba`:</span>
-    
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">]</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>Now we're ready to use our model!</p>
-<p>In the next section we're going to load the sample data discussed above, and divide it into two portions:</p>
-<ul>
-<li>75% for model fitting</li>
-<li>25% for predictions</li>
-</ul>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In [2]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="k">import</span> <span class="n">load_breast_cancer</span>
-<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
-
-<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_breast_cancer</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> 
-                                                    <span class="n">train_size</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> 
-                                                    <span class="n">test_size</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> 
-                                                    <span class="n">random_state</span><span class="o">=</span><span class="mi">1234</span><span class="p">)</span> <span class="c1"># more reproducibility</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered">
-<div class="prompt input_prompt">
-</div>
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>Now we have everything we need, lets load up our model, fit it with the training data, and generate some predictions:</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In [4]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># load our model</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">CustomModel</span><span class="p">()</span>
-
-<span class="c1"># fit our model</span>
-<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
-
-<span class="c1"># generate some predictions</span>
-<span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
-</pre></div>
-
-</div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-<div class="prompt output_prompt">Out[4]:</div>
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>array([  9.25168417e-01,   9.99922130e-01,   9.53635418e-01,
-         9.88416588e-01,   9.97542577e-01,   9.95232506e-01,
-         4.60659258e-02,   9.98390194e-01,   6.59002902e-10,
-         2.76899836e-06,   8.30718694e-10,   9.63993586e-01,
-         9.94157890e-01,   9.50980576e-01,   9.96974859e-01,
-         6.97038792e-10,   9.99809391e-01,   9.96431765e-01,
-         9.99363563e-01,   8.43800531e-06,   9.95502414e-01,
-         7.77576547e-03,   1.12727716e-09,   3.40904102e-17,
-         3.68627970e-09,   6.55649762e-01,   3.51723839e-03,
-         9.97326888e-01,   9.98785233e-01,   9.97552026e-01,
-         9.86350517e-01,   9.98844211e-01,   5.70842717e-04,
-         9.87742427e-01,   9.19814189e-01,   9.78443649e-01,
-         9.92882821e-01,   1.14676290e-02,   1.48817234e-01,
-         9.98733024e-01,   4.13813658e-05,   9.93177003e-01,
-         1.72319657e-10,   8.54534408e-01,   8.81187668e-01,
-         9.97568264e-01,   9.98086681e-01,   8.32784885e-01,
-         4.49929586e-11,   8.89087737e-01,   9.28259947e-01,
-         9.91244116e-01,   9.94876558e-01,   1.51106510e-08,
-         2.60668778e-01,   9.99597520e-01,   9.98940073e-01,
-         9.99968817e-01,   9.91318570e-01,   8.29369844e-03,
-         9.93238377e-01,   9.92431535e-01,   9.29775117e-01,
-         9.99271713e-01,   9.96474598e-01,   2.41572863e-04,
-         1.51376226e-11,   9.97330558e-01,   9.98831771e-01,
-         4.79400697e-01,   9.99798779e-01,   3.57307727e-07,
-         9.99656809e-01,   7.03641088e-01,   9.98247027e-01,
-         9.96093354e-01,   9.99588791e-01,   2.58369708e-08,
-         9.98136922e-01,   7.97865310e-03,   9.99065333e-01,
-         9.98470351e-01,   9.94581260e-01,   9.29328694e-01,
-         1.41996390e-02,   1.43214384e-04,   3.71155631e-05,
-         4.45838811e-06,   9.13207438e-01,   8.56295696e-01,
-         9.99467328e-01,   9.74324559e-01,   9.99328632e-01,
-         2.91312374e-12,   1.00998256e-01,   9.86992421e-01,
-         9.97149193e-01,   9.13815924e-01,   9.98807818e-01,
-         9.84005486e-01,   3.17865443e-08,   2.30937811e-11,
-         9.98036358e-01,   9.99532884e-01,   1.24075526e-03,
-         9.98819765e-01,   9.99752279e-01,   8.53677349e-04,
-         1.53192255e-01,   9.30832406e-01,   1.49723823e-05,
-         5.28688983e-01,   1.48786146e-03,   9.92804571e-51,
-         8.86447353e-01,   9.95516043e-01,   9.98554149e-01,
-         1.75078944e-03,   9.99922978e-01,   4.67159833e-01,
-         9.99825913e-01,   9.57716419e-01,   9.95069689e-01,
-         9.98728887e-01,   7.49375338e-14,   9.92513330e-01,
-         1.49918676e-02,   1.63977226e-02,   9.95785292e-01,
-         9.56124754e-01,   3.53639065e-01,   9.96011137e-01,
-         7.27728677e-33,   9.97779030e-01,   7.77872222e-02,
-         9.90058068e-01,   9.80367925e-01,   2.92408222e-01,
-         9.98164180e-01,   1.67926421e-01,   9.99996297e-01,
-         6.35631576e-10,   1.06440027e-01])</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In [ ]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
-</pre></div>
-
-</div>
-</div>
-</div>
-
 </div>
     </div>
   </div>
