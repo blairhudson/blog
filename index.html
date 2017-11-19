@@ -12,7 +12,7 @@
 <meta name="generator" content="Nikola (getnikola.com)">
 <link rel="alternate" type="application/rss+xml" title="RSS" href="rss.xml">
 <link rel="canonical" href="http://blairhudson.github.io/blog/">
-<!--[if lt IE 9]><script src="assets/js/html5.js"></script><![endif]--><link rel="prefetch" href="posts/automating-error-analysis-with-rulefit-models/" type="text/html">
+<!--[if lt IE 9]><script src="assets/js/html5.js"></script><![endif]--><link rel="prefetch" href="posts/using-bivariate-kernel-density-estimation-for-plotting-multi-task-classification-results/" type="text/html">
 </head>
 <body>
 <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
@@ -56,7 +56,165 @@
 
     
 <div class="postindex">
-    <article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/automating-error-analysis-with-rulefit-models/" class="u-url">Automating error analysis with RuleFit models</a></h1>
+    <article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/using-bivariate-kernel-density-estimation-for-plotting-multi-task-classification-results/" class="u-url">Using bivariate kernel density estimation for plotting multi-task classification results</a></h1>
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                Blair Hudson
+            </span></p>
+            <p class="dateline"><a href="posts/using-bivariate-kernel-density-estimation-for-plotting-multi-task-classification-results/" rel="bookmark"><time class="published dt-published" datetime="2017-11-19T22:32:39+11:00" title="2017-11-19 22:32">2017-11-19 22:32</time></a></p>
+        </div>
+    </header><div class="e-content entry-content">
+    <div tabindex="-1" id="notebook" class="border-box-sizing">
+    <div class="container" id="notebook-container">
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>One common technique for interpreting the outputs of a single classification model is kernel density estimation (KDE). Similar to a histogram, a KDE plot allows us to estimate the underlying probability density of our model.</p>
+<p>This is particularly useful for visualising the impact of selecting different classification thresholds (i.e. deciding at what point to round a given probability to 1 or 0).</p>
+<p>You can apply this visualisation technique to multi-task classifcation too. This uses bivariate KDE, which also generalises to multivariate KDE. Unforunately we're constrained to two tasks, given the limitation of having only two axes on 2D plots.</p>
+<p>To achieve this, we're going to create a suitable test dataset based on the Digits classification data, train a Random Forest Classifier using two labels, and output a bivariate KDE plot using the Seaborn visualisation library.</p>
+<h3 id="Preparing-data-for-multi-task-learning">Preparing data for multi-task learning<a class="anchor-link" href="posts/using-bivariate-kernel-density-estimation-for-plotting-multi-task-classification-results/#Preparing-data-for-multi-task-learning">¶</a>
+</h3>
+<p>To simulate multi-task learning, we're going to load three classes of the Digits data (i.e. digits 0, 1 and 2), and break this into labels for two binary tasks:</p>
+<ol>
+<li>the digit is one</li>
+<li>the digit is two</li>
+</ol>
+<p>(In the case that the digit is zero, both tasks will have a False label.)</p>
+<p>Before training our model, we'll also consolidate the two label sets into a single 2 x N set.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [1]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="k">import</span> <span class="n">load_digits</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">load_digits</span><span class="p">(</span><span class="n">return_X_y</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">n_class</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="n">y_task1</span> <span class="o">=</span> <span class="n">y</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="n">y_task2</span> <span class="o">=</span> <span class="n">y</span> <span class="o">==</span> <span class="mi">2</span>
+
+<span class="n">y_multitask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">y_task1</span><span class="p">,</span><span class="n">y_task2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Training-a-multi-task-Random-Forest-classifier">Training a multi-task Random Forest classifier<a class="anchor-link" href="posts/using-bivariate-kernel-density-estimation-for-plotting-multi-task-classification-results/#Training-a-multi-task-Random-Forest-classifier">¶</a>
+</h3>
+<p>After splitting our data into train and test sets, we'll train the classifier and split the predicted probabilities into two sets:</p>
+<ol>
+<li>probability that the digit is one</li>
+<li>probability that the digit is two</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [14]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.ensemble</span> <span class="k">import</span> <span class="n">RandomForestClassifier</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="k">import</span> <span class="n">train_test_split</span>
+
+<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y_multitask</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">1234</span><span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">RandomForestClassifier</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">1234</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+<span class="n">y_hat</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+<span class="n">y_task1_hat</span> <span class="o">=</span> <span class="n">y_hat</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">y_task2_hat</span> <span class="o">=</span> <span class="n">y_hat</span><span class="p">[</span><span class="mi">1</span><span class="p">][:,</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Visualisation-bivariate-KDE-with-Seaborn">Visualisation bivariate KDE with Seaborn<a class="anchor-link" href="posts/using-bivariate-kernel-density-estimation-for-plotting-multi-task-classification-results/#Visualisation-bivariate-KDE-with-Seaborn">¶</a>
+</h3>
+<p>Seaborn (a set of extensions over Matplotlib) comes to the rescue with the built-in KDE plot function. The function accepts two data sets, one for the X-axis (in this case, task 1) and one fo the Y-axis (task 2).</p>
+<p>We've also constrained the axis to the range (0,1). Without this, the full range of the KDE function will be plotted, going below 0% and above 100%, which doesn't make sense in the context of our problem (or any binary classification task).</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [13]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="n">kdeplot</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">kdeplot</span><span class="p">(</span><span class="n">y_task1_hat</span><span class="p">,</span> <span class="n">y_task2_hat</span><span class="p">,</span> <span class="n">shade</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">legend</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'grey'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">'dotted'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'grey'</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">'dotted'</span><span class="p">)</span>
+<span class="n">kdeplot</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">'P(Task 1)'</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">'P(Task 2)'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+<div class="prompt"></div>
+
+
+
+<div class="output_png output_subarea ">
+<img src="data:image/png;base64,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">
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>The bivariate KDE plot makes the probability densities for our two learning tasks clear, and as you would expect, demonstrates that it is not likely for a given case to have a high probability for both tasks simulatenously.</p>
+
+</div>
+</div>
+</div>
+    </div>
+  </div>
+
+    </div>
+    </article><article class="h-entry post-text"><header><h1 class="p-name entry-title"><a href="posts/automating-error-analysis-with-rulefit-models/" class="u-url">Automating error analysis with RuleFit models</a></h1>
         <div class="metadata">
             <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
                 Blair Hudson
@@ -2611,7 +2769,7 @@ Top feature relative performance: 35.855513308
         <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML" integrity="sha256-SDRP1VVYu+tgAGKhddBSl5+ezofHKZeI+OzxakbIe/Y=" crossorigin="anonymous"></script><script type="text/x-mathjax-config">
         MathJax.Hub.Config({tex2jax: {inlineMath: [['$latex ','$'], ['\\(','\\)']]}});
         </script><!--End of body content--><footer id="footer">
-            Contents © 2017         <a href="http://blairhudson.com">Blair Hudson</a>
+            Contents © 2017 <a href="http://blairhudson.com">Blair Hudson</a> • Views are my own
             
         </footer>
 </div>
